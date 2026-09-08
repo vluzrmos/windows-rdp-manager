@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { StorageService } from './storageService';
 import { RdpService } from './rdpService';
+import { RdpConnection } from '../../src/types/rdp';
 
 export class TrayService {
   private static tray: Tray | null = null;
@@ -63,6 +64,31 @@ export class TrayService {
     this.tray.setContextMenu(menu);
   }
 
+  private static async connect(conn: RdpConnection) {
+    const decryptedPassword = StorageService.getDecryptedPassword(conn.id);
+    const settings = StorageService.getSettings();
+    const mode =
+      conn.launchMode && conn.launchMode !== 'default'
+        ? conn.launchMode
+        : settings.defaultLaunchMode || 'direct';
+
+    const res = await RdpService.launchRdp(conn, decryptedPassword, mode);
+    if (res.success) {
+      StorageService.updateLastConnected(conn.id);
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('data:refresh');
+      }
+      if (settings.minimizeToTrayOnConnect && this.mainWindow) {
+        if (settings.minimizeToTray) {
+          this.mainWindow.hide();
+        } else {
+          this.mainWindow.minimize();
+        }
+      }
+      this.updateMenu();
+    }
+  }
+
   private static buildContextMenu(): Menu {
     const connections = StorageService.getConnections();
 
@@ -74,53 +100,68 @@ export class TrayService {
 
     const template: Electron.MenuItemConstructorOptions[] = [];
 
-    // Seção de conexões recentes
+    // Header / Label fraca "Recentes"
+    template.push({
+      label: 'Recentes',
+      enabled: false,
+    });
+
     if (recentConnections.length > 0) {
       recentConnections.forEach((conn) => {
         const title = conn.name ? `${conn.name} (${conn.host})` : conn.host;
         template.push({
           label: title,
           click: async () => {
-            const decryptedPassword = StorageService.getDecryptedPassword(conn.id);
-            const settings = StorageService.getSettings();
-            const mode =
-              conn.launchMode && conn.launchMode !== 'default'
-                ? conn.launchMode
-                : settings.defaultLaunchMode || 'direct';
-
-            const res = await RdpService.launchRdp(conn, decryptedPassword, mode);
-            if (res.success) {
-              StorageService.updateLastConnected(conn.id);
-              if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                this.mainWindow.webContents.send('data:refresh');
-              }
-              if (settings.minimizeToTrayOnConnect && this.mainWindow) {
-                if (settings.minimizeToTray) {
-                  this.mainWindow.hide();
-                } else {
-                  this.mainWindow.minimize();
-                }
-              }
-              this.updateMenu();
-            }
+            await this.connect(conn);
           },
         });
       });
     } else {
       template.push({
-        label: 'Nenhuma conexão cadastrada',
+        label: 'Nenhuma conexão recente',
         enabled: false,
       });
     }
 
     template.push({ type: 'separator' });
 
-    template.push({
-      label: 'Conexões',
+    // Submenu Conexões (abre lista com todas as conexões cadastradas)
+    const allConnectionsSubmenu: Electron.MenuItemConstructorOptions[] = [];
+
+    allConnectionsSubmenu.push({
+      label: 'Abrir Gerenciador de Conexões',
       click: () => {
         this.showMainWindow();
         this.mainWindow?.webContents.send('navigate:connections');
       },
+    });
+
+    allConnectionsSubmenu.push({ type: 'separator' });
+
+    if (connections.length > 0) {
+      const sortedConnections = connections
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+      sortedConnections.forEach((conn) => {
+        const title = conn.name ? `${conn.name} (${conn.host})` : conn.host;
+        allConnectionsSubmenu.push({
+          label: title,
+          click: async () => {
+            await this.connect(conn);
+          },
+        });
+      });
+    } else {
+      allConnectionsSubmenu.push({
+        label: 'Nenhuma conexão cadastrada',
+        enabled: false,
+      });
+    }
+
+    template.push({
+      label: 'Conexões',
+      submenu: allConnectionsSubmenu,
     });
 
     template.push({
