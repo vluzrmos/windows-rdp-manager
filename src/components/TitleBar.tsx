@@ -28,9 +28,7 @@ export const TitleBar: React.FC = () => {
     <header className="h-10 bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-3 select-none titlebar-drag z-50">
       {/* Brand & Title */}
       <div className="flex items-center gap-2.5">
-        <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-sm shadow-blue-500/30">
-          <Monitor className="w-3.5 h-3.5 text-white" />
-        </div>
+        <img src="/icon.png" alt="Windows RDP Manager" className="w-5 h-5 rounded object-contain shadow-sm" />
         <span className="text-xs font-semibold text-slate-200 tracking-wide">
           Windows RDP Manager
         </span>

@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Drawing
 
-$sourcePath = "C:\Users\vluzr\.gemini\antigravity-ide\brain\d6b2e9ca-031c-457d-9013-99f191469517\app_rdp_icon_1788899469131.jpg"
+$sourcePath = "public\icon-v2.png"
 $destIco = "build\icon.ico"
 $destPng512 = "build\icon.png"
 $destPng256 = "public\icon.png"
