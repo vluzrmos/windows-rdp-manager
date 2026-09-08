@@ -23,36 +23,6 @@ export class RdpService {
   }
 
   /**
-   * Garante que o perfil padrão do Windows (Default.rdp) tenha a área de transferência habilitada.
-   * Quando o mstsc.exe é disparado via /v:<host>, ele herda as preferências do Default.rdp.
-   */
-  private static ensureDefaultRdpPreferences(enableClipboard = true) {
-    try {
-      const docsDir = app?.getPath ? app.getPath('documents') : path.join(process.env.USERPROFILE || '', 'Documents');
-      if (!fs.existsSync(docsDir)) {
-        fs.mkdirSync(docsDir, { recursive: true });
-      }
-      const defaultRdpPath = path.join(docsDir, 'Default.rdp');
-
-      const clipboardLine = `redirectclipboard:i:${enableClipboard ? 1 : 0}`;
-
-      if (!fs.existsSync(defaultRdpPath)) {
-        fs.writeFileSync(defaultRdpPath, `${clipboardLine}\r\nsmart sizing:i:1\r\n`, 'utf-8');
-      } else {
-        let content = fs.readFileSync(defaultRdpPath, 'utf-8');
-        if (/redirectclipboard:i:[01]/.test(content)) {
-          content = content.replace(/redirectclipboard:i:[01]/, clipboardLine);
-        } else {
-          content += `\r\n${clipboardLine}\r\n`;
-        }
-        fs.writeFileSync(defaultRdpPath, content, 'utf-8');
-      }
-    } catch (err) {
-      console.warn('Aviso ao sincronizar Default.rdp:', err);
-    }
-  }
-
-  /**
    * Constrói o conteúdo padrão de um arquivo .rdp do Windows
    */
   static buildRdpContent(conn: RdpConnection): string {
@@ -190,9 +160,6 @@ export class RdpService {
       const args: string[] = [];
 
       if (effectiveMode === 'direct') {
-        // Assegura que o Default.rdp tenha o redirecionamento de clipboard sincronizado
-        this.ensureDefaultRdpPreferences(conn.resources?.redirectClipboard ?? true);
-
         // MODO 1: Linha de comando direta mstsc.exe /v:<host> (Sem avisos de segurança de arquivo desconhecido)
         const fullAddress = conn.port && conn.port !== 3389 ? `${conn.host}:${conn.port}` : conn.host;
         args.push(`/v:${fullAddress}`);
