@@ -16,7 +16,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveSettings,
 }) => {
   const [autoCheckPing, setAutoCheckPing] = useState(settings.autoCheckPing);
-  const [minimizeToTray, setMinimizeToTray] = useState(settings.minimizeToTrayOnConnect);
+  const [minimizeToTrayOnConnect, setMinimizeToTrayOnConnect] = useState(settings.minimizeToTrayOnConnect);
+  const [minimizeToTray, setMinimizeToTray] = useState(settings.minimizeToTray || false);
+  const [closeToTray, setCloseToTray] = useState(settings.closeToTray || false);
+  const [startWithWindows, setStartWithWindows] = useState(settings.startWithWindows || false);
   const [confirmDelete, setConfirmDelete] = useState(settings.confirmBeforeDelete);
   const [defaultGroup, setDefaultGroup] = useState(settings.defaultGroup || 'Geral');
   const [defaultLaunchMode, setDefaultLaunchMode] = useState<LaunchMode>(
@@ -27,7 +30,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setAutoCheckPing(settings.autoCheckPing);
-      setMinimizeToTray(settings.minimizeToTrayOnConnect);
+      setMinimizeToTrayOnConnect(settings.minimizeToTrayOnConnect);
+      setMinimizeToTray(settings.minimizeToTray || false);
+      setCloseToTray(settings.closeToTray || false);
+      setStartWithWindows(settings.startWithWindows || false);
       setConfirmDelete(settings.confirmBeforeDelete);
       setDefaultGroup(settings.defaultGroup || 'Geral');
       setDefaultLaunchMode(settings.defaultLaunchMode || 'direct');
@@ -39,7 +45,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleSave = async () => {
     await onSaveSettings({
       autoCheckPing,
-      minimizeToTrayOnConnect: minimizeToTray,
+      minimizeToTrayOnConnect,
+      minimizeToTray,
+      closeToTray: minimizeToTray ? closeToTray : false,
+      startWithWindows,
       confirmBeforeDelete: confirmDelete,
       defaultGroup: defaultGroup.trim() || 'Geral',
       defaultLaunchMode,
@@ -132,56 +141,130 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoCheckPing}
-              onChange={(e) => setAutoCheckPing(e.target.checked)}
-              className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
-            />
-            <div>
-              <span className="text-xs font-semibold text-white block">
-                Verificação automática de status
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Checa a porta RDP 3389 de todas as conexões ao abrir o aplicativo
-              </span>
-            </div>
-          </label>
+          {/* Opções de Janela e Bandeja */}
+          <div className="space-y-2 pt-1">
+            <h4 className="text-xs font-semibold text-slate-300">Comportamento e Bandeja do Sistema</h4>
+            
+            <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={minimizeToTray}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setMinimizeToTray(val);
+                  if (!val) setCloseToTray(false);
+                }}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Minimizar para a bandeja
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Oculta a janela na área de notificação do Windows ao clicar em minimizar
+                </span>
+              </div>
+            </label>
 
-          <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer">
-            <input
-              type="checkbox"
-              checked={minimizeToTray}
-              onChange={(e) => setMinimizeToTray(e.target.checked)}
-              className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
-            />
-            <div>
-              <span className="text-xs font-semibold text-white block">
-                Minimizar ao Conectar
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Minimiza o gerenciador automaticamente quando o mstsc.exe for iniciado
-              </span>
-            </div>
-          </label>
+            {/* Manter aberto na bandeja ao fechar (ativo somente se minimizar estiver ativo) */}
+            <label
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                minimizeToTray
+                  ? 'bg-slate-900/60 border-slate-800 hover:border-slate-700 cursor-pointer ml-4'
+                  : 'bg-slate-900/30 border-slate-800/50 opacity-40 cursor-not-allowed ml-4'
+              }`}
+            >
+              <input
+                type="checkbox"
+                disabled={!minimizeToTray}
+                checked={minimizeToTray && closeToTray}
+                onChange={(e) => setCloseToTray(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4 disabled:opacity-50"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Manter aberto na bandeja ao fechar
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  {minimizeToTray
+                    ? 'Ao clicar no X da janela, mantém o aplicativo em execução em segundo plano'
+                    : 'Requer "Minimizar para a bandeja" ativo'}
+                </span>
+              </div>
+            </label>
 
-          <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer">
-            <input
-              type="checkbox"
-              checked={confirmDelete}
-              onChange={(e) => setConfirmDelete(e.target.checked)}
-              className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
-            />
-            <div>
-              <span className="text-xs font-semibold text-white block">
-                Confirmar antes de excluir
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Exibe um diálogo de aviso ao clicar no botão de exclusão
-              </span>
-            </div>
-          </label>
+            <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={startWithWindows}
+                onChange={(e) => setStartWithWindows(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Iniciar com o Windows
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Abre o Windows RDP Manager automaticamente ao ligar o computador
+                </span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={minimizeToTrayOnConnect}
+                onChange={(e) => setMinimizeToTrayOnConnect(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Minimizar ao conectar RDP
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Minimiza o gerenciador automaticamente quando o mstsc.exe for iniciado
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <h4 className="text-xs font-semibold text-slate-300">Geral</h4>
+            
+            <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={autoCheckPing}
+                onChange={(e) => setAutoCheckPing(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Verificação automática de status
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Checa a porta RDP 3389 de todas as conexões ao abrir o aplicativo
+                </span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={confirmDelete}
+                onChange={(e) => setConfirmDelete(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Confirmar antes de excluir
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Exibe um diálogo de aviso ao clicar no botão de exclusão
+                </span>
+              </div>
+            </label>
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">

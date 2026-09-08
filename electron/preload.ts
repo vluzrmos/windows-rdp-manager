@@ -17,6 +17,9 @@ export interface RdpApi {
   maximizeWindow: () => void;
   closeWindow: () => void;
   isMaximized: () => Promise<boolean>;
+  // Eventos de navegação e atualização
+  onNavigate: (callback: (target: 'settings' | 'connections') => void) => () => void;
+  onRefreshData: (callback: () => void) => () => void;
 }
 
 const api: RdpApi = {
@@ -35,6 +38,25 @@ const api: RdpApi = {
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),
   isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+
+  onNavigate: (callback: (target: 'settings' | 'connections') => void) => {
+    const handleSettings = () => callback('settings');
+    const handleConnections = () => callback('connections');
+    ipcRenderer.on('navigate:settings', handleSettings);
+    ipcRenderer.on('navigate:connections', handleConnections);
+    return () => {
+      ipcRenderer.removeListener('navigate:settings', handleSettings);
+      ipcRenderer.removeListener('navigate:connections', handleConnections);
+    };
+  },
+
+  onRefreshData: (callback: () => void) => {
+    const handleRefresh = () => callback();
+    ipcRenderer.on('data:refresh', handleRefresh);
+    return () => {
+      ipcRenderer.removeListener('data:refresh', handleRefresh);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('rdpApi', api);

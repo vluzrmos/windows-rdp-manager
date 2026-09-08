@@ -79,6 +79,30 @@ export const App: React.FC = () => {
     loadInitialData();
   }, [loadInitialData]);
 
+  // Escutar eventos da bandeja (abrir configurações, focar conexões, atualizar dados)
+  useEffect(() => {
+    if (!window.rdpApi?.onNavigate) return;
+    const unsubNavigate = window.rdpApi.onNavigate((target) => {
+      if (target === 'settings') {
+        setIsSettingsOpen(true);
+      } else if (target === 'connections') {
+        setIsSettingsOpen(false);
+        setIsConnectionModalOpen(false);
+        setSelectedGroup('ALL');
+        setSelectedTag(null);
+      }
+    });
+
+    const unsubRefresh = window.rdpApi.onRefreshData?.(() => {
+      loadInitialData();
+    });
+
+    return () => {
+      unsubNavigate();
+      unsubRefresh?.();
+    };
+  }, [loadInitialData]);
+
   // Checagem de Ping em lote
   const triggerBatchPing = async (itemsToCheck = connections) => {
     if (!window.rdpApi || itemsToCheck.length === 0) return;

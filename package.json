@@ -9,6 +9,7 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
+    "pack": "npm run build && electron-builder --dir",
     "dist": "npm run pack && node_modules\\7zip-bin\\win\\x64\\7za.exe a -tzip -r -y \"release\\Windows-RDP-Manager-v1.0.0-win-x64.zip\" \".\\release\\win-unpacked\\*\""
   },
   "build": {
@@ -20,10 +21,12 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "build/icon.ico",
       "package.json"
     ],
     "win": {
-      "target": "dir"
+      "target": "dir",
+      "icon": "build/icon.ico"
     }
   },
   "keywords": [

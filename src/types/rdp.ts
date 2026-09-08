@@ -74,6 +74,9 @@ export interface PingResult {
 export interface AppSettings {
   autoCheckPing: boolean;
   minimizeToTrayOnConnect: boolean;
+  minimizeToTray: boolean;
+  closeToTray: boolean;
+  startWithWindows: boolean;
   confirmBeforeDelete: boolean;
   defaultGroup: string;
   defaultLaunchMode: LaunchMode; // Padrão global ('direct' ou 'rdp_file')

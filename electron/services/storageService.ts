@@ -24,6 +24,9 @@ export class StorageService {
   private static defaultSettings: AppSettings = {
     autoCheckPing: true,
     minimizeToTrayOnConnect: false,
+    minimizeToTray: false,
+    closeToTray: false,
+    startWithWindows: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
     defaultLaunchMode: 'direct',
