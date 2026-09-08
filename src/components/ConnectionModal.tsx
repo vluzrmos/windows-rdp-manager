@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Monitor, 
@@ -11,7 +11,7 @@ import {
   Activity, 
   Star 
 } from 'lucide-react';
-import { RdpConnection, PingResult } from '../types/rdp';
+import { RdpConnection, PingResult, ScreenMode } from '../types/rdp';
 
 interface ConnectionModalProps {
   initialData?: RdpConnection | null;
@@ -30,54 +30,129 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   onSave,
   onTestPing,
 }) => {
-  const isEditing = !!initialData;
+  const isEditing = Boolean(initialData && initialData.id);
+  const isDuplicating = Boolean(initialData && !initialData.id);
   const [activeTab, setActiveTab] = useState<'general' | 'display' | 'resources' | 'experience'>('general');
 
   // Form State
-  const [name, setName] = useState(initialData?.name || '');
-  const [group, setGroup] = useState(initialData?.group || 'Geral');
+  const [name, setName] = useState('');
+  const [group, setGroup] = useState('Geral');
   const [customGroup, setCustomGroup] = useState('');
   const [isNewGroup, setIsNewGroup] = useState(false);
-  const [host, setHost] = useState(initialData?.host || '');
-  const [port, setPort] = useState<number>(initialData?.port || 3389);
-  const [username, setUsername] = useState(initialData?.username || '');
-  const [domain, setDomain] = useState(initialData?.domain || '');
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState<number>(3389);
+  const [username, setUsername] = useState('');
+  const [domain, setDomain] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [notes, setNotes] = useState(initialData?.notes || '');
-  const [tagsInput, setTagsInput] = useState(initialData?.tags?.join(', ') || '');
-  const [isFavorite, setIsFavorite] = useState(initialData?.isFavorite || false);
+  const [notes, setNotes] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // Display State
-  const [screenMode, setScreenMode] = useState(initialData?.display?.screenMode || 'fullscreen');
-  const [customResolution, setCustomResolution] = useState(
-    initialData?.display?.width ? `${initialData.display.width}x${initialData.display.height}` : '1920x1080'
-  );
-  const [smartSizing, setSmartSizing] = useState(initialData?.display?.smartSizing ?? true);
-  const [useMultimon, setUseMultimon] = useState(initialData?.display?.useMultimon ?? false);
-  const [colorDepth, setColorDepth] = useState<15 | 16 | 24 | 32>(initialData?.display?.colorDepth || 32);
+  const [screenMode, setScreenMode] = useState<ScreenMode>('fullscreen');
+  const [customResolution, setCustomResolution] = useState('1920x1080');
+  const [smartSizing, setSmartSizing] = useState(true);
+  const [useMultimon, setUseMultimon] = useState(false);
+  const [colorDepth, setColorDepth] = useState<15 | 16 | 24 | 32>(32);
 
   // Local Resources State
-  const [redirectClipboard, setRedirectClipboard] = useState(initialData?.resources?.redirectClipboard ?? true);
-  const [redirectDrives, setRedirectDrives] = useState(initialData?.resources?.redirectDrives ?? false);
-  const [redirectPrinters, setRedirectPrinters] = useState(initialData?.resources?.redirectPrinters ?? false);
-  const [audioMode, setAudioMode] = useState<0 | 1 | 2>(initialData?.resources?.audioMode ?? 0);
-  const [audioCapture, setAudioCapture] = useState(initialData?.resources?.audioCapture ?? false);
+  const [redirectClipboard, setRedirectClipboard] = useState(true);
+  const [redirectDrives, setRedirectDrives] = useState(false);
+  const [redirectPrinters, setRedirectPrinters] = useState(false);
+  const [audioMode, setAudioMode] = useState<0 | 1 | 2>(0);
+  const [audioCapture, setAudioCapture] = useState(false);
 
   // Experience State
-  const [connectionType, setConnectionType] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(
-    initialData?.experience?.connectionType ?? 7
-  );
-  const [adminConsole, setAdminConsole] = useState(initialData?.experience?.adminConsole ?? false);
+  const [connectionType, setConnectionType] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(7);
+  const [adminConsole, setAdminConsole] = useState(false);
 
   // Gateway
-  const [enableGateway, setEnableGateway] = useState(initialData?.gateway?.enabled ?? false);
-  const [gatewayHostname, setGatewayHostname] = useState(initialData?.gateway?.hostname || '');
-  const [gatewayUsername, setGatewayUsername] = useState(initialData?.gateway?.username || '');
+  const [enableGateway, setEnableGateway] = useState(false);
+  const [gatewayHostname, setGatewayHostname] = useState('');
+  const [gatewayUsername, setGatewayUsername] = useState('');
 
   // Ping test in modal
   const [pingTesting, setPingTesting] = useState(false);
   const [pingResult, setPingResult] = useState<PingResult | null>(null);
+
+  // Sincroniza e reseta o formulário sempre que abrir ou mudar o initialData
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('general');
+      setPingResult(null);
+      setPingTesting(false);
+      setShowPassword(false);
+      setPassword('');
+
+      if (initialData) {
+        setName(initialData.name || '');
+        setGroup(initialData.group || 'Geral');
+        setCustomGroup('');
+        setIsNewGroup(false);
+        setHost(initialData.host || '');
+        setPort(initialData.port || 3389);
+        setUsername(initialData.username || '');
+        setDomain(initialData.domain || '');
+        setNotes(initialData.notes || '');
+        setTagsInput(initialData.tags?.join(', ') || '');
+        setIsFavorite(initialData.isFavorite || false);
+
+        setScreenMode(initialData.display?.screenMode || 'fullscreen');
+        setCustomResolution(
+          initialData.display?.width ? `${initialData.display.width}x${initialData.display.height}` : '1920x1080'
+        );
+        setSmartSizing(initialData.display?.smartSizing ?? true);
+        setUseMultimon(initialData.display?.useMultimon ?? false);
+        setColorDepth(initialData.display?.colorDepth || 32);
+
+        setRedirectClipboard(initialData.resources?.redirectClipboard ?? true);
+        setRedirectDrives(initialData.resources?.redirectDrives ?? false);
+        setRedirectPrinters(initialData.resources?.redirectPrinters ?? false);
+        setAudioMode(initialData.resources?.audioMode ?? 0);
+        setAudioCapture(initialData.resources?.audioCapture ?? false);
+
+        setConnectionType(initialData.experience?.connectionType ?? 7);
+        setAdminConsole(initialData.experience?.adminConsole ?? false);
+
+        setEnableGateway(initialData.gateway?.enabled ?? false);
+        setGatewayHostname(initialData.gateway?.hostname || '');
+        setGatewayUsername(initialData.gateway?.username || '');
+      } else {
+        // Nova Conexão Limpa
+        setName('');
+        setGroup('Geral');
+        setCustomGroup('');
+        setIsNewGroup(false);
+        setHost('');
+        setPort(3389);
+        setUsername('');
+        setDomain('');
+        setNotes('');
+        setTagsInput('');
+        setIsFavorite(false);
+
+        setScreenMode('fullscreen');
+        setCustomResolution('1920x1080');
+        setSmartSizing(true);
+        setUseMultimon(false);
+        setColorDepth(32);
+
+        setRedirectClipboard(true);
+        setRedirectDrives(false);
+        setRedirectPrinters(false);
+        setAudioMode(0);
+        setAudioCapture(false);
+
+        setConnectionType(7);
+        setAdminConsole(false);
+
+        setEnableGateway(false);
+        setGatewayHostname('');
+        setGatewayUsername('');
+      }
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -177,10 +252,12 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-white">
-                {isEditing ? 'Editar Perfil RDP' : 'Nova Conexão RDP'}
+                {isEditing ? 'Editar Perfil RDP' : isDuplicating ? 'Duplicar Perfil RDP' : 'Nova Conexão RDP'}
               </h2>
               <p className="text-[11px] text-slate-400">
-                Configure os parâmetros de sessão para o cliente nativo do Windows
+                {isDuplicating
+                  ? 'Ajuste os dados da cópia antes de criar o novo perfil'
+                  : 'Configure os parâmetros de sessão para o cliente nativo do Windows'}
               </p>
             </div>
           </div>

@@ -221,16 +221,17 @@ export const App: React.FC = () => {
     await handleSaveConnection(updated);
   };
 
-  const handleDuplicate = async (conn: RdpConnection) => {
+  const handleDuplicate = (conn: RdpConnection) => {
     const duplicated: RdpConnection = {
       ...conn,
-      id: crypto.randomUUID(),
+      id: '', // sem ID: indica que é um NOVO perfil a ser criado
       name: `${conn.name} (Cópia)`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: 0,
+      updatedAt: 0,
       lastConnectedAt: undefined,
     };
-    await handleSaveConnection(duplicated);
+    setEditingConnection(duplicated);
+    setIsConnectionModalOpen(true);
   };
 
   const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
@@ -353,12 +354,16 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Connection Modal (Create / Edit) */}
+      {/* Connection Modal (Create / Edit / Duplicate) */}
       <ConnectionModal
+        key={editingConnection ? (editingConnection.id || 'duplicate-' + editingConnection.name) : 'new-connection'}
         isOpen={isConnectionModalOpen}
         initialData={editingConnection}
         existingGroups={existingGroups}
-        onClose={() => setIsConnectionModalOpen(false)}
+        onClose={() => {
+          setIsConnectionModalOpen(false);
+          setEditingConnection(null);
+        }}
         onSave={handleSaveConnection}
         onTestPing={(host, port) => window.rdpApi.checkPing(host, port)}
       />
