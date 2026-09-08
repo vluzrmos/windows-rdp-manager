@@ -197,6 +197,7 @@ export class RdpService {
         detached: true,
         stdio: 'ignore',
         windowsHide: false,
+        cwd: process.env.USERPROFILE || 'C:\\Windows\\System32',
       });
 
       child.unref();

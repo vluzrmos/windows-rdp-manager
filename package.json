@@ -8,9 +8,23 @@
     "build:vite": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run build:vite && npm run build:electron",
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "start": "cross-env NODE_ENV=production electron .",
+    "dist": "npm run pack && node_modules\\7zip-bin\\win\\x64\\7za.exe a -tzip -r -y \"release\\Windows-RDP-Manager-v1.0.0-win-x64.zip\" \".\\release\\win-unpacked\\*\""
+  },
+  "build": {
+    "appId": "br.com.vluzrmos.windowsrdpmanager",
+    "productName": "Windows RDP Manager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "dir"
+    }
   },
   "keywords": [
     "rdp",

@@ -27,8 +27,9 @@ function createWindow() {
   const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production';
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools();
+    mainWindow.loadURL('http://localhost:5173').catch(() => {
+      mainWindow?.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
+    });
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
   }
