@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Minus, Square, Copy, X, ShieldCheck, Monitor } from 'lucide-react';
+import { Minus, Square, Copy, X, ShieldCheck } from 'lucide-react';
+import appIcon from '../assets/icon.png';
 
 export const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -28,7 +29,11 @@ export const TitleBar: React.FC = () => {
     <header className="h-10 bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-3 select-none titlebar-drag z-50">
       {/* Brand & Title */}
       <div className="flex items-center gap-2.5">
-        <img src="/icon.png" alt="Windows RDP Manager" className="w-5 h-5 rounded object-contain shadow-sm" />
+        <img
+          src={appIcon}
+          alt="Windows RDP Manager"
+          className="w-5 h-5 rounded object-contain shadow-sm"
+        />
         <span className="text-xs font-semibold text-slate-200 tracking-wide">
           Windows RDP Manager
         </span>
