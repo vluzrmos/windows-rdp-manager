@@ -442,7 +442,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                       }`}
                     >
                       {pingResult.online
-                        ? `Porta 3389 Aberta (${pingResult.latencyMs}ms)`
+                        ? `Porta ${Number(port) || 3389} Aberta (${pingResult.latencyMs}ms)`
                         : pingResult.error || 'Porta inacessível'}
                     </span>
                   )}

@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onRefreshPing}
             disabled={isCheckingPing}
-            title="Verificar status de conectividade RDP (Porta 3389)"
+            title="Verificar status de conectividade RDP"
             className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isCheckingPing ? 'animate-spin text-blue-400' : ''}`} />
