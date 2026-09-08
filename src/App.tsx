@@ -18,6 +18,7 @@ export const App: React.FC = () => {
     minimizeToTrayOnConnect: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
+    defaultLaunchMode: 'direct',
     masterPasswordEnabled: false,
   });
 

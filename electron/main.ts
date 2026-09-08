@@ -88,11 +88,11 @@ ipcMain.handle('rdp:connectRdp', async (_event, id: string) => {
   }
 
   const decryptedPassword = StorageService.getDecryptedPassword(id);
-  const result = await RdpService.launchRdp(conn, decryptedPassword);
+  const settings = StorageService.getSettings();
+  const result = await RdpService.launchRdp(conn, decryptedPassword, settings.defaultLaunchMode || 'direct');
 
   if (result.success) {
     StorageService.updateLastConnected(id);
-    const settings = StorageService.getSettings();
     if (settings.minimizeToTrayOnConnect && mainWindow) {
       mainWindow.minimize();
     }

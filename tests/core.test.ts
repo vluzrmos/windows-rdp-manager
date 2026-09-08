@@ -1,7 +1,7 @@
-import { RdpService } from './electron/services/rdpService';
-import { PingService } from './electron/services/pingService';
-import { CryptoService } from './electron/services/cryptoService';
-import { RdpConnection } from './src/types/rdp';
+import { RdpService } from '../electron/services/rdpService';
+import { PingService } from '../electron/services/pingService';
+import { CryptoService } from '../electron/services/cryptoService';
+import { RdpConnection } from '../src/types/rdp';
 
 async function runTests() {
   console.log('--- TESTANDO SERVIÇOS DO RDP MANAGER ---');

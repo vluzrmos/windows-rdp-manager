@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { X, Settings, Check, Shield } from 'lucide-react';
-import { AppSettings } from '../types/rdp';
+import React, { useState, useEffect } from 'react';
+import { X, Settings, Check, Shield, Terminal, FileText } from 'lucide-react';
+import { AppSettings, LaunchMode } from '../types/rdp';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -19,7 +19,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [minimizeToTray, setMinimizeToTray] = useState(settings.minimizeToTrayOnConnect);
   const [confirmDelete, setConfirmDelete] = useState(settings.confirmBeforeDelete);
   const [defaultGroup, setDefaultGroup] = useState(settings.defaultGroup || 'Geral');
+  const [defaultLaunchMode, setDefaultLaunchMode] = useState<LaunchMode>(
+    settings.defaultLaunchMode || 'direct'
+  );
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAutoCheckPing(settings.autoCheckPing);
+      setMinimizeToTray(settings.minimizeToTrayOnConnect);
+      setConfirmDelete(settings.confirmBeforeDelete);
+      setDefaultGroup(settings.defaultGroup || 'Geral');
+      setDefaultLaunchMode(settings.defaultLaunchMode || 'direct');
+    }
+  }, [isOpen, settings]);
 
   if (!isOpen) return null;
 
@@ -29,6 +42,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       minimizeToTrayOnConnect: minimizeToTray,
       confirmBeforeDelete: confirmDelete,
       defaultGroup: defaultGroup.trim() || 'Geral',
+      defaultLaunchMode,
     });
     setSaved(true);
     setTimeout(() => {
@@ -39,7 +53,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-      <div className="w-full max-w-md bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl p-6">
+      <div className="w-full max-w-lg bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
@@ -59,6 +73,65 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="space-y-4">
+          {/* Modo de Inicialização Padrão */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-200 mb-2">
+              Modo de Inicialização Padrão do RDP
+            </label>
+            <div className="grid grid-cols-1 gap-2.5">
+              <div
+                onClick={() => setDefaultLaunchMode('direct')}
+                className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  defaultLaunchMode === 'direct'
+                    ? 'bg-blue-600/10 border-blue-500'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${defaultLaunchMode === 'direct' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                    <Terminal className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">
+                        Linha de Comando Direta (mstsc.exe /v)
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
+                        Recomendado
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Abre a conexão passando os parâmetros diretamente ao executável nativo. <strong>Não exibe</strong> o aviso de segurança de &quot;Fornecedor desconhecido&quot; e autentica de imediato com usuário e senha do Credential Manager.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setDefaultLaunchMode('rdp_file')}
+                className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  defaultLaunchMode === 'rdp_file'
+                    ? 'bg-blue-600/10 border-blue-500'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${defaultLaunchMode === 'rdp_file' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-xs font-bold text-white block">
+                      Perfis de Arquivo RDP (.rdp)
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Gera um arquivo de configuração temporário em disco. Suporta todos os recursos avançados de redirecionamento (impressoras, unidades de disco específicas), mas o Windows pode exibir o alerta de segurança para arquivos não assinados digitalmente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer">
             <input
               type="checkbox"

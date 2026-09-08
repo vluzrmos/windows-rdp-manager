@@ -137,31 +137,62 @@ export class RdpService {
   }
 
   /**
-   * Lança a sessão RDP abrindo o cliente nativo mstsc.exe do Windows
+   * Lança a sessão RDP abrindo o cliente nativo mstsc.exe do Windows.
+   * Suporta tanto modo direto por linha de comando (/v) quanto perfil de arquivo .rdp.
    */
-  static async launchRdp(conn: RdpConnection, decryptedPassword?: string): Promise<{ success: boolean; error?: string }> {
+  static async launchRdp(
+    conn: RdpConnection,
+    decryptedPassword?: string,
+    defaultLaunchMode: 'direct' | 'rdp_file' = 'direct'
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.ensureTempDir();
+      // Determina o modo efetivo (a configuração do perfil sobrepõe o padrão global)
+      const effectiveMode =
+        conn.launchMode && conn.launchMode !== 'default'
+          ? conn.launchMode
+          : defaultLaunchMode;
 
       // 1. Injetar credencial no Windows Credential Manager se houver senha
       if (decryptedPassword) {
         await this.setWindowsCredentials(conn, decryptedPassword);
       }
 
-      // 2. Gerar arquivo .rdp temporário
-      const rdpContent = this.buildRdpContent(conn);
-      // Sanitizar nome do arquivo
-      const safeFileName = `${conn.id}_${conn.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.rdp`;
-      const rdpFilePath = path.join(this.getTempDir(), safeFileName);
-      fs.writeFileSync(rdpFilePath, rdpContent, 'utf-8');
+      const args: string[] = [];
 
-      // 3. Montar argumentos do mstsc.exe
-      const args = [rdpFilePath];
-      if (conn.experience?.adminConsole) {
-        args.push('/admin');
+      if (effectiveMode === 'direct') {
+        // MODO 1: Linha de comando direta mstsc.exe /v:<host> (Sem avisos de segurança de arquivo desconhecido)
+        const fullAddress = conn.port && conn.port !== 3389 ? `${conn.host}:${conn.port}` : conn.host;
+        args.push(`/v:${fullAddress}`);
+
+        if (conn.display?.screenMode === 'fullscreen') {
+          args.push('/f');
+        } else if (conn.display?.screenMode === 'custom') {
+          if (conn.display.width) args.push(`/w:${conn.display.width}`);
+          if (conn.display.height) args.push(`/h:${conn.display.height}`);
+        }
+
+        if (conn.display?.useMultimon) {
+          args.push('/multimon');
+        }
+
+        if (conn.experience?.adminConsole) {
+          args.push('/admin');
+        }
+      } else {
+        // MODO 2: Arquivo de perfil .rdp (Suporte a redirecionamentos avançados específicos)
+        this.ensureTempDir();
+        const rdpContent = this.buildRdpContent(conn);
+        const safeFileName = `${conn.id}_${conn.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.rdp`;
+        const rdpFilePath = path.join(this.getTempDir(), safeFileName);
+        fs.writeFileSync(rdpFilePath, rdpContent, 'utf-8');
+
+        args.push(rdpFilePath);
+        if (conn.experience?.adminConsole) {
+          args.push('/admin');
+        }
       }
 
-      // 4. Executar mstsc desanexado do processo do Electron
+      // Executar mstsc desanexado do processo do Electron
       const child = spawn('mstsc.exe', args, {
         detached: true,
         stdio: 'ignore',

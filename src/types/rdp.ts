@@ -56,7 +56,10 @@ export interface RdpConnection {
   resources: RdpLocalResources;
   experience: RdpExperience;
   gateway?: RdpGateway;
+  launchMode?: 'default' | 'direct' | 'rdp_file'; // Sobrescreve o modo de inicialização global
 }
+
+export type LaunchMode = 'direct' | 'rdp_file';
 
 export type ConnectionStatus = 'online' | 'offline' | 'checking' | 'unknown';
 
@@ -73,6 +76,7 @@ export interface AppSettings {
   minimizeToTrayOnConnect: boolean;
   confirmBeforeDelete: boolean;
   defaultGroup: string;
+  defaultLaunchMode: LaunchMode; // Padrão global ('direct' ou 'rdp_file')
   masterPasswordEnabled: boolean;
   salt?: string;
   passwordVerifierHash?: string;

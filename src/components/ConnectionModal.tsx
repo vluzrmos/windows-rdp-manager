@@ -72,6 +72,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [gatewayHostname, setGatewayHostname] = useState('');
   const [gatewayUsername, setGatewayUsername] = useState('');
 
+  // Modo de Inicialização (override)
+  const [launchMode, setLaunchMode] = useState<'default' | 'direct' | 'rdp_file'>('default');
+
   // Ping test in modal
   const [pingTesting, setPingTesting] = useState(false);
   const [pingResult, setPingResult] = useState<PingResult | null>(null);
@@ -97,6 +100,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         setNotes(initialData.notes || '');
         setTagsInput(initialData.tags?.join(', ') || '');
         setIsFavorite(initialData.isFavorite || false);
+        setLaunchMode(initialData.launchMode || 'default');
 
         setScreenMode(initialData.display?.screenMode || 'fullscreen');
         setCustomResolution(
@@ -131,6 +135,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         setNotes('');
         setTagsInput('');
         setIsFavorite(false);
+        setLaunchMode('default');
 
         setScreenMode('fullscreen');
         setCustomResolution('1920x1080');
@@ -235,6 +240,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             usageMethod: 1,
           }
         : undefined,
+      launchMode,
     };
 
     await onSave(updatedConn);
@@ -808,6 +814,29 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Modo de Execução RDP (Override) */}
+              <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 space-y-2">
+                <label className="block text-xs font-semibold text-white">
+                  Método de Inicialização do Cliente Windows
+                </label>
+                <select
+                  value={launchMode}
+                  onChange={(e) => setLaunchMode(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="default">Usar Padrão Global (definido nas Configurações)</option>
+                  <option value="direct">Linha de Comando Direta (mstsc.exe /v) - Sem aviso de fornecedor desconhecido</option>
+                  <option value="rdp_file">Arquivo de Perfil (.rdp) - Recursos avançados completos</option>
+                </select>
+                <p className="text-[11px] text-slate-400">
+                  {launchMode === 'direct'
+                    ? 'Conecta diretamente via mstsc.exe /v com parâmetros de tela. Não exibe aviso de segurança de fornecedor desconhecido.'
+                    : launchMode === 'rdp_file'
+                    ? 'Gera um arquivo .rdp temporário no disco com opções completas de redirecionamento local.'
+                    : 'Utiliza o comportamento configurado no painel geral de Configurações do aplicativo.'}
+                </p>
               </div>
             </div>
           )}

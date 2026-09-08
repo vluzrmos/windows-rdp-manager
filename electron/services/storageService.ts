@@ -26,6 +26,7 @@ export class StorageService {
     minimizeToTrayOnConnect: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
+    defaultLaunchMode: 'direct',
     masterPasswordEnabled: false,
   };
 
