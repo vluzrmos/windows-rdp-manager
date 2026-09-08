@@ -22,10 +22,12 @@ export class StorageService {
   }
 
   private static defaultSettings: AppSettings = {
-    autoCheckPing: true,
+    autoCheckPing: false,
+    pingIntervalMinutes: 5,
+    disablePingStatus: false,
     minimizeToTrayOnConnect: false,
-    minimizeToTray: false,
-    closeToTray: false,
+    minimizeToTray: true,
+    closeToTray: true,
     startWithWindows: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',

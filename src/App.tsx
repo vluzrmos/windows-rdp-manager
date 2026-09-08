@@ -14,8 +14,13 @@ import { Plus, Server, AlertTriangle } from 'lucide-react';
 export const App: React.FC = () => {
   const [connections, setConnections] = useState<RdpConnection[]>([]);
   const [settings, setSettings] = useState<AppSettings>({
-    autoCheckPing: true,
+    autoCheckPing: false,
+    pingIntervalMinutes: 5,
+    disablePingStatus: false,
     minimizeToTrayOnConnect: false,
+    minimizeToTray: true,
+    closeToTray: true,
+    startWithWindows: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
     defaultLaunchMode: 'direct',
@@ -64,7 +69,7 @@ export const App: React.FC = () => {
         setConnections(conns);
         setSettings(sett);
 
-        if (sett.autoCheckPing && conns.length > 0) {
+        if (sett.autoCheckPing && !sett.disablePingStatus && conns.length > 0) {
           triggerBatchPing(conns);
         }
       }
@@ -105,7 +110,7 @@ export const App: React.FC = () => {
 
   // Checagem de Ping em lote
   const triggerBatchPing = async (itemsToCheck = connections) => {
-    if (!window.rdpApi || itemsToCheck.length === 0) return;
+    if (!window.rdpApi || itemsToCheck.length === 0 || settings.disablePingStatus) return;
     setIsCheckingPing(true);
 
     const uniqueTargets = new Map<string, { host: string; port: number }>();
@@ -128,6 +133,18 @@ export const App: React.FC = () => {
 
     setIsCheckingPing(false);
   };
+
+  // Intervalo de verificação automática periódica de status
+  useEffect(() => {
+    if (!settings.autoCheckPing || settings.disablePingStatus || connections.length === 0) {
+      return;
+    }
+    const intervalMs = Math.max(1, settings.pingIntervalMinutes || 5) * 60 * 1000;
+    const timer = setInterval(() => {
+      triggerBatchPing();
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [settings.autoCheckPing, settings.disablePingStatus, settings.pingIntervalMinutes, connections]);
 
   // Atalhos de teclado globais
   useEffect(() => {
@@ -278,6 +295,7 @@ export const App: React.FC = () => {
           selectedGroup={selectedGroup}
           onSelectGroup={setSelectedGroup}
           pingResults={pingResults}
+          disablePingStatus={settings.disablePingStatus}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenExportImport={() => setIsExportImportOpen(true)}
           onAddGroup={() => {
@@ -303,6 +321,7 @@ export const App: React.FC = () => {
             selectedTag={selectedTag}
             onSelectTag={setSelectedTag}
             availableTags={availableTags}
+            disablePingStatus={settings.disablePingStatus}
           />
 
           {/* Connection List / Grid Container */}
@@ -342,6 +361,7 @@ export const App: React.FC = () => {
                     key={conn.id}
                     connection={conn}
                     pingResult={pingResults[`${conn.host}:${conn.port || 3389}`]}
+                    disablePingStatus={settings.disablePingStatus}
                     onConnect={handleConnect}
                     onEdit={(c) => {
                       setEditingConnection(c);
@@ -361,6 +381,7 @@ export const App: React.FC = () => {
               <ConnectionListView
                 connections={filteredConnections}
                 pingResults={pingResults}
+                disablePingStatus={settings.disablePingStatus}
                 onConnect={handleConnect}
                 onEdit={(c) => {
                   setEditingConnection(c);

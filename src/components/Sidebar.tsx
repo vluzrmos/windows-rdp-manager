@@ -21,6 +21,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenExportImport: () => void;
   onAddGroup: () => void;
+  disablePingStatus?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings,
   onOpenExportImport,
   onAddGroup,
+  disablePingStatus,
 }) => {
   // Extrair grupos únicos
   const groups = Array.from(new Set(connections.map((c) => c.group || 'Geral'))).sort();
@@ -41,33 +43,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   let onlineCount = 0;
   let offlineCount = 0;
-  connections.forEach((c) => {
-    const key = `${c.host}:${c.port || 3389}`;
-    if (pingResults[key]?.online) onlineCount++;
-    else if (pingResults[key]?.online === false) offlineCount++;
-  });
+  if (!disablePingStatus) {
+    connections.forEach((c) => {
+      const key = `${c.host}:${c.port || 3389}`;
+      if (pingResults[key]?.online) onlineCount++;
+      else if (pingResults[key]?.online === false) offlineCount++;
+    });
+  }
 
   return (
     <aside className="w-64 bg-[#0d1322] border-r border-slate-800/80 flex flex-col justify-between select-none shrink-0">
       {/* Top Section */}
       <div className="p-3 overflow-y-auto">
         {/* Status Quick Summary */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-slate-400 block font-medium">Online</span>
-              <span className="text-sm font-bold text-emerald-400">{onlineCount}</span>
+        {!disablePingStatus && (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-slate-400 block font-medium">Online</span>
+                <span className="text-sm font-bold text-emerald-400">{onlineCount}</span>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
             </div>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
-          </div>
-          <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-slate-400 block font-medium">Offline</span>
-              <span className="text-sm font-bold text-rose-400">{offlineCount}</span>
+            <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-slate-400 block font-medium">Offline</span>
+                <span className="text-sm font-bold text-rose-400">{offlineCount}</span>
+              </div>
+              <XCircle className="w-4 h-4 text-rose-500/70" />
             </div>
-            <XCircle className="w-4 h-4 text-rose-500/70" />
           </div>
-        </div>
+        )}
 
         {/* Navigation Categories */}
         <div className="space-y-1 mb-5">

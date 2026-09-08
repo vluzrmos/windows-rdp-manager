@@ -73,6 +73,8 @@ export interface PingResult {
 
 export interface AppSettings {
   autoCheckPing: boolean;
+  pingIntervalMinutes: number; // Intervalo em minutos da checagem automática
+  disablePingStatus: boolean; // Desativa exibição do status (ping) e checagem manual/automática
   minimizeToTrayOnConnect: boolean;
   minimizeToTray: boolean;
   closeToTray: boolean;

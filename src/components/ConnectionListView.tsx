@@ -21,6 +21,7 @@ interface ConnectionListViewProps {
   onDelete: (id: string) => void;
   onToggleFavorite: (connection: RdpConnection) => void;
   onViewPassword: (connection: RdpConnection) => void;
+  disablePingStatus?: boolean;
 }
 
 export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
@@ -32,6 +33,7 @@ export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
   onDelete,
   onToggleFavorite,
   onViewPassword,
+  disablePingStatus,
 }) => {
   return (
     <div className="bg-[#111827]/80 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
@@ -39,7 +41,7 @@ export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
         <thead className="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-semibold border-b border-slate-800">
           <tr>
             <th className="py-3 px-3 w-10 text-center">Fav</th>
-            <th className="py-3 px-3 w-20">Status</th>
+            {!disablePingStatus && <th className="py-3 px-3 w-20">Status</th>}
             <th className="py-3 px-4">Nome</th>
             <th className="py-3 px-4">Host / IP</th>
             <th className="py-3 px-3">Grupo</th>
@@ -77,26 +79,28 @@ export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
                 </td>
 
                 {/* Status Ping */}
-                <td className="py-2.5 px-3">
-                  {ping ? (
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        ping.online
-                          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
-                          : 'bg-rose-950/60 text-rose-400 border border-rose-800/40'
-                      }`}
-                    >
+                {!disablePingStatus && (
+                  <td className="py-2.5 px-3">
+                    {ping ? (
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          ping.online ? 'bg-emerald-400' : 'bg-rose-500'
+                        className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          ping.online
+                            ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
+                            : 'bg-rose-950/60 text-rose-400 border border-rose-800/40'
                         }`}
-                      />
-                      <span>{ping.online ? `${ping.latencyMs}ms` : 'Off'}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-500">—</span>
-                  )}
-                </td>
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            ping.online ? 'bg-emerald-400' : 'bg-rose-500'
+                          }`}
+                        />
+                        <span>{ping.online ? `${ping.latencyMs}ms` : 'Off'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-500">—</span>
+                    )}
+                  </td>
+                )}
 
                 {/* Name */}
                 <td className="py-2.5 px-4 font-semibold text-white group-hover:text-blue-400 transition-colors">

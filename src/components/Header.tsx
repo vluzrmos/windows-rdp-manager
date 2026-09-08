@@ -20,6 +20,7 @@ interface HeaderProps {
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
   availableTags: string[];
+  disablePingStatus?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   selectedTag,
   onSelectTag,
   availableTags,
+  disablePingStatus,
 }) => {
   return (
     <div className="h-16 px-6 border-b border-slate-800/80 bg-[#0f172a]/50 backdrop-blur-sm flex items-center justify-between gap-4 select-none shrink-0">
@@ -91,14 +93,16 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Action Controls */}
       <div className="flex items-center gap-2.5 shrink-0">
         {/* Refresh Ping */}
-        <button
-          onClick={onRefreshPing}
-          disabled={isCheckingPing}
-          title="Verificar status de conectividade RDP (Porta 3389)"
-          className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isCheckingPing ? 'animate-spin text-blue-400' : ''}`} />
-        </button>
+        {!disablePingStatus && (
+          <button
+            onClick={onRefreshPing}
+            disabled={isCheckingPing}
+            title="Verificar status de conectividade RDP (Porta 3389)"
+            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isCheckingPing ? 'animate-spin text-blue-400' : ''}`} />
+          </button>
+        )}
 
         {/* View Mode Toggle */}
         <div className="flex items-center p-0.5 bg-slate-900 border border-slate-800 rounded-lg">

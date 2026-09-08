@@ -27,6 +27,7 @@ interface ConnectionCardProps {
   onDelete: (id: string) => void;
   onToggleFavorite: (connection: RdpConnection) => void;
   onViewPassword: (connection: RdpConnection) => void;
+  disablePingStatus?: boolean;
 }
 
 export const ConnectionCard: React.FC<ConnectionCardProps> = ({
@@ -38,6 +39,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
   onDelete,
   onToggleFavorite,
   onViewPassword,
+  disablePingStatus,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [copiedHost, setCopiedHost] = useState(false);
@@ -78,7 +80,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
             </span>
 
             {/* Ping Indicator */}
-            {pingResult && (
+            {pingResult && !disablePingStatus && (
               <span
                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                   pingResult.online

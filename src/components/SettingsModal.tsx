@@ -15,10 +15,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSaveSettings,
 }) => {
-  const [autoCheckPing, setAutoCheckPing] = useState(settings.autoCheckPing);
+  const [autoCheckPing, setAutoCheckPing] = useState(settings.autoCheckPing ?? false);
+  const [pingIntervalMinutes, setPingIntervalMinutes] = useState(settings.pingIntervalMinutes || 5);
+  const [disablePingStatus, setDisablePingStatus] = useState(settings.disablePingStatus || false);
   const [minimizeToTrayOnConnect, setMinimizeToTrayOnConnect] = useState(settings.minimizeToTrayOnConnect);
-  const [minimizeToTray, setMinimizeToTray] = useState(settings.minimizeToTray || false);
-  const [closeToTray, setCloseToTray] = useState(settings.closeToTray || false);
+  const [minimizeToTray, setMinimizeToTray] = useState(settings.minimizeToTray ?? true);
+  const [closeToTray, setCloseToTray] = useState(settings.closeToTray ?? true);
   const [startWithWindows, setStartWithWindows] = useState(settings.startWithWindows || false);
   const [confirmDelete, setConfirmDelete] = useState(settings.confirmBeforeDelete);
   const [defaultGroup, setDefaultGroup] = useState(settings.defaultGroup || 'Geral');
@@ -29,10 +31,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setAutoCheckPing(settings.autoCheckPing);
+      setAutoCheckPing(settings.autoCheckPing ?? false);
+      setPingIntervalMinutes(settings.pingIntervalMinutes || 5);
+      setDisablePingStatus(settings.disablePingStatus || false);
       setMinimizeToTrayOnConnect(settings.minimizeToTrayOnConnect);
-      setMinimizeToTray(settings.minimizeToTray || false);
-      setCloseToTray(settings.closeToTray || false);
+      setMinimizeToTray(settings.minimizeToTray ?? true);
+      setCloseToTray(settings.closeToTray ?? true);
       setStartWithWindows(settings.startWithWindows || false);
       setConfirmDelete(settings.confirmBeforeDelete);
       setDefaultGroup(settings.defaultGroup || 'Geral');
@@ -44,7 +48,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSave = async () => {
     await onSaveSettings({
-      autoCheckPing,
+      autoCheckPing: disablePingStatus ? false : autoCheckPing,
+      pingIntervalMinutes,
+      disablePingStatus,
       minimizeToTrayOnConnect,
       minimizeToTray,
       closeToTray: minimizeToTray ? closeToTray : false,
@@ -228,25 +234,91 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </label>
           </div>
 
+          {/* Status e Conectividade (Ping) */}
           <div className="space-y-2 pt-1">
-            <h4 className="text-xs font-semibold text-slate-300">Geral</h4>
-            
+            <h4 className="text-xs font-semibold text-slate-300">Status de Conectividade (Ping)</h4>
+
+            {/* Opção para desativar indicador e checagem de status */}
             <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
               <input
                 type="checkbox"
-                checked={autoCheckPing}
-                onChange={(e) => setAutoCheckPing(e.target.checked)}
-                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4"
+                checked={disablePingStatus}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setDisablePingStatus(val);
+                  if (val) {
+                    setAutoCheckPing(false);
+                  }
+                }}
+                className="rounded border-slate-700 text-rose-500 focus:ring-0 w-4 h-4"
               />
               <div>
                 <span className="text-xs font-semibold text-white block">
-                  Verificação automática de status
+                  Desativar indicador de status (Ping)
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  Checa a porta RDP 3389 de todas as conexões ao abrir o aplicativo
+                  Oculta a latência/status nos cards e desativa o botão de teste manual. Impede a checagem automática.
                 </span>
               </div>
             </label>
+
+            {/* Verificação automática de status */}
+            <label
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                disablePingStatus
+                  ? 'bg-slate-900/30 border-slate-800/50 opacity-40 cursor-not-allowed'
+                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 cursor-pointer'
+              }`}
+            >
+              <input
+                type="checkbox"
+                disabled={disablePingStatus}
+                checked={!disablePingStatus && autoCheckPing}
+                onChange={(e) => setAutoCheckPing(e.target.checked)}
+                className="rounded border-slate-700 text-blue-600 focus:ring-0 w-4 h-4 disabled:opacity-50"
+              />
+              <div>
+                <span className="text-xs font-semibold text-white block">
+                  Verificação automática periódica de status
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  {disablePingStatus
+                    ? 'Desabilitado porque o indicador de status está desativado'
+                    : 'Testa periodicamente a porta RDP 3389 de todas as conexões cadastradas'}
+                </span>
+              </div>
+            </label>
+
+            {/* Tempo entre cada verificação (apenas se autoCheckPing e !disablePingStatus) */}
+            {!disablePingStatus && autoCheckPing && (
+              <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-lg ml-4 space-y-1.5 animate-fadeIn">
+                <label className="block text-xs font-semibold text-slate-200">
+                  Intervalo entre verificações automáticas
+                </label>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={pingIntervalMinutes}
+                    onChange={(e) => setPingIntervalMinutes(Number(e.target.value))}
+                    className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value={1}>A cada 1 minuto</option>
+                    <option value={2}>A cada 2 minutos</option>
+                    <option value={5}>A cada 5 minutos (Recomendado)</option>
+                    <option value={10}>A cada 10 minutos</option>
+                    <option value={15}>A cada 15 minutos</option>
+                    <option value={30}>A cada 30 minutos</option>
+                    <option value={60}>A cada 1 hora</option>
+                  </select>
+                  <span className="text-[11px] text-slate-400">
+                    Tempo de espera entre os testes de conectividade
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <h4 className="text-xs font-semibold text-slate-300">Geral</h4>
 
             <label className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-lg cursor-pointer hover:border-slate-700 transition-colors">
               <input
