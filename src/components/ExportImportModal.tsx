@@ -114,10 +114,10 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
       <div className="w-full max-w-lg bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        {/* Header (Fixo) */}
+        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
@@ -129,14 +129,14 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-800 bg-slate-950/40 text-xs">
+        {/* Tabs (Fixo) */}
+        <div className="flex border-b border-slate-800 bg-slate-950/40 text-xs shrink-0">
           <button
             onClick={() => setTab('export')}
             className={`flex-1 py-3 text-center font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
@@ -161,8 +161,8 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        {/* Content (Rolagem Interna Automática) */}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {tab === 'export' ? (
             <div className="space-y-4">
               {!exportedData ? (
@@ -320,6 +320,16 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               </button>
             </form>
           )}
+        </div>
+
+        {/* Modal Footer (Fixo) */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+          >
+            Fechar
+          </button>
         </div>
       </div>
     </div>

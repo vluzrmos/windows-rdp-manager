@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, KeyRound, Copy, Check, Eye, EyeOff } from 'lucide-react';
-import { RdpConnection } from '../types/rdp';
+import { X, KeyRound, Copy, Check, Eye, EyeOff, Server } from 'lucide-react';
+import { RdpConnection, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface PasswordRevealModalProps {
   connection: RdpConnection | null;
@@ -37,6 +37,8 @@ export const PasswordRevealModal: React.FC<PasswordRevealModalProps> = ({
 
   if (!isOpen || !connection) return null;
 
+  const hostWithPort = `${connection.host}:${connection.port || DEFAULT_RDP_PORT}`;
+
   const handleCopy = () => {
     if (!password) return;
     navigator.clipboard.writeText(password);
@@ -46,31 +48,51 @@ export const PasswordRevealModal: React.FC<PasswordRevealModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-      <div className="w-full max-w-md bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="w-full max-w-md bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Modal Header (Fixo) */}
+        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
               <KeyRound className="w-4 h-4" />
             </div>
-            <div>
+            <div className="truncate">
               <h3 className="text-sm font-bold text-white">Credencial de Acesso</h3>
-              <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
-                {connection.name} ({connection.host})
+              <p className="text-[11px] text-slate-400 truncate max-w-[280px]">
+                {connection.name} ({hostWithPort})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-3">
+        {/* Modal Body (Rolagem Interna Automática) */}
+        <div className="p-6 space-y-3.5 flex-1 overflow-y-auto min-h-0">
+          {/* Servidor IP:Porta */}
+          <div>
+            <span className="text-[11px] text-slate-400 block mb-1">Servidor (Host:Porta)</span>
+            <div className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 select-text flex items-center justify-between">
+              <span>{hostWithPort}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(hostWithPort);
+                }}
+                title="Copiar Host:Porta"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
           <div>
             <span className="text-[11px] text-slate-400 block mb-1">Usuário</span>
-            <div className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200">
+            <div className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 select-text">
               {connection.domain ? `${connection.domain}\\` : ''}
               {connection.username || 'Sem usuário'}
             </div>
@@ -108,10 +130,11 @@ export const PasswordRevealModal: React.FC<PasswordRevealModalProps> = ({
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
+        {/* Modal Footer (Fixo) */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
           >
             Fechar
           </button>
