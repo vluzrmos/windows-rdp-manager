@@ -215,46 +215,68 @@ ipcMain.handle('rdp:saveSettings', async (_event, settings: Partial<AppSettings>
   return updated;
 });
 
-// App Lifecycle
-app.whenReady().then(() => {
-  createWindow();
+// Garantir instância única do aplicativo (Single Instance Lock)
+const gotTheLock = app.requestSingleInstanceLock();
 
-  if (mainWindow) {
-    TrayService.init(mainWindow, () => {
-      isQuitting = true;
-      TrayService.destroy();
-      app.quit();
-    });
-  }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-      if (mainWindow) {
-        TrayService.init(mainWindow, () => {
-          isQuitting = true;
-          TrayService.destroy();
-          app.quit();
-        });
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // Se o usuário tentar abrir uma nova instância, restaurar e focar na janela existente
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
       }
-    } else {
-      TrayService.showMainWindow();
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+    } else if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
     }
   });
-});
 
-app.on('before-quit', () => {
-  isQuitting = true;
-  TrayService.destroy();
-});
+  // App Lifecycle
+  app.whenReady().then(() => {
+    createWindow();
 
-app.on('window-all-closed', () => {
-  const settings = StorageService.getSettings();
-  // Se closeToTray ou minimizeToTray estiver ativo, mantém rodando na bandeja
-  if ((settings.minimizeToTray && settings.closeToTray) && !isQuitting) {
-    return;
-  }
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+    if (mainWindow) {
+      TrayService.init(mainWindow, () => {
+        isQuitting = true;
+        TrayService.destroy();
+        app.quit();
+      });
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+        if (mainWindow) {
+          TrayService.init(mainWindow, () => {
+            isQuitting = true;
+            TrayService.destroy();
+            app.quit();
+          });
+        }
+      } else {
+        TrayService.showMainWindow();
+      }
+    });
+  });
+
+  app.on('before-quit', () => {
+    isQuitting = true;
+    TrayService.destroy();
+  });
+
+  app.on('window-all-closed', () => {
+    const settings = StorageService.getSettings();
+    // Se closeToTray ou minimizeToTray estiver ativo, mantém rodando na bandeja
+    if ((settings.minimizeToTray && settings.closeToTray) && !isQuitting) {
+      return;
+    }
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+}
