@@ -178,35 +178,46 @@ export const App: React.FC = () => {
     return Array.from(new Set(connections.map((c) => c.group || 'Geral'))).sort();
   }, [connections]);
 
-  // Filtragem de conexões
+  // Filtragem e ordenação de conexões (favoritados primeiro, ambos em ordem alfabética)
   const filteredConnections = useMemo(() => {
-    return connections.filter((conn) => {
-      // Filtro de Grupo
-      if (selectedGroup === 'FAVORITES') {
-        if (!conn.isFavorite) return false;
-      } else if (selectedGroup !== 'ALL') {
-        if ((conn.group || 'Geral') !== selectedGroup) return false;
-      }
+    return connections
+      .filter((conn) => {
+        // Filtro de Grupo
+        if (selectedGroup === 'FAVORITES') {
+          if (!conn.isFavorite) return false;
+        } else if (selectedGroup !== 'ALL') {
+          if ((conn.group || 'Geral') !== selectedGroup) return false;
+        }
 
-      // Filtro de Tag
-      if (selectedTag && !conn.tags?.includes(selectedTag)) {
-        return false;
-      }
+        // Filtro de Tag
+        if (selectedTag && !conn.tags?.includes(selectedTag)) {
+          return false;
+        }
 
-      // Filtro de Busca
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = conn.name.toLowerCase().includes(q);
-        const matchHost = conn.host.toLowerCase().includes(q);
-        const matchUser = conn.username?.toLowerCase().includes(q);
-        const matchGroup = conn.group?.toLowerCase().includes(q);
-        const matchNotes = conn.notes?.toLowerCase().includes(q);
-        const matchTags = conn.tags?.some((t) => t.toLowerCase().includes(q));
-        return matchName || matchHost || matchUser || matchGroup || matchNotes || matchTags;
-      }
+        // Filtro de Busca
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchName = conn.name.toLowerCase().includes(q);
+          const matchHost = conn.host.toLowerCase().includes(q);
+          const matchUser = conn.username?.toLowerCase().includes(q);
+          const matchGroup = conn.group?.toLowerCase().includes(q);
+          const matchNotes = conn.notes?.toLowerCase().includes(q);
+          const matchTags = conn.tags?.some((t) => t.toLowerCase().includes(q));
+          return matchName || matchHost || matchUser || matchGroup || matchNotes || matchTags;
+        }
 
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => {
+        // 1. Favoritados primeiro
+        const favA = a.isFavorite ? 1 : 0;
+        const favB = b.isFavorite ? 1 : 0;
+        if (favA !== favB) {
+          return favB - favA;
+        }
+        // 2. Ordenados alfabeticamente entre si pelo nome
+        return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true });
+      });
   }, [connections, selectedGroup, selectedTag, searchQuery]);
 
   // Ações de Conexão
