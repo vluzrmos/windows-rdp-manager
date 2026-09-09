@@ -1,4 +1,5 @@
 import net from 'net';
+import { DEFAULT_RDP_PORT } from '../../src/types/rdp';
 
 export interface PingResult {
   host: string;
@@ -10,10 +11,10 @@ export interface PingResult {
 
 export class PingService {
   /**
-   * Testa a conectividade TCP com o host na porta RDP informada (padrão 3389).
+   * Testa a conectividade TCP com o host na porta RDP informada (padrão DEFAULT_RDP_PORT).
    * Valida com precisão se o serviço Remote Desktop está ouvindo.
    */
-  static async checkPort(host: string, port = 3389, timeoutMs = 2000): Promise<PingResult> {
+  static async checkPort(host: string, port = DEFAULT_RDP_PORT, timeoutMs = 2000): Promise<PingResult> {
     const startTime = Date.now();
 
     return new Promise((resolve) => {

@@ -8,7 +8,7 @@ import { ConnectionModal } from './components/ConnectionModal';
 import { PasswordRevealModal } from './components/PasswordRevealModal';
 import { ExportImportModal } from './components/ExportImportModal';
 import { SettingsModal } from './components/SettingsModal';
-import { RdpConnection, AppSettings, PingResult } from './types/rdp';
+import { RdpConnection, AppSettings, PingResult, DEFAULT_RDP_PORT } from './types/rdp';
 import { Plus, Server, AlertTriangle } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -115,7 +115,7 @@ export const App: React.FC = () => {
 
     const uniqueTargets = new Map<string, { host: string; port: number }>();
     itemsToCheck.forEach((c) => {
-      const port = c.port || 3389;
+      const port = c.port || DEFAULT_RDP_PORT;
       uniqueTargets.set(`${c.host}:${port}`, { host: c.host, port });
     });
 
@@ -360,7 +360,7 @@ export const App: React.FC = () => {
                   <ConnectionCard
                     key={conn.id}
                     connection={conn}
-                    pingResult={pingResults[`${conn.host}:${conn.port || 3389}`]}
+                    pingResult={pingResults[`${conn.host}:${conn.port || DEFAULT_RDP_PORT}`]}
                     disablePingStatus={settings.disablePingStatus}
                     onConnect={handleConnect}
                     onEdit={(c) => {

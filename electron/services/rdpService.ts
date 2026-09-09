@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn, exec } from 'child_process';
 import util from 'util';
-import { RdpConnection } from '../../src/types/rdp';
+import { RdpConnection, DEFAULT_RDP_PORT } from '../../src/types/rdp';
 
 import os from 'os';
 
@@ -29,7 +29,7 @@ export class RdpService {
     const lines: string[] = [];
 
     // Endereço e Porta
-    const fullAddress = conn.port && conn.port !== 3389 ? `${conn.host}:${conn.port}` : conn.host;
+    const fullAddress = conn.port && conn.port !== DEFAULT_RDP_PORT ? `${conn.host}:${conn.port}` : conn.host;
     lines.push(`full address:s:${fullAddress}`);
 
     // Usuário
@@ -119,7 +119,7 @@ export class RdpService {
     
     // Alvos para o Credential Manager (com e sem porta)
     const targets = [`TERMSRV/${conn.host}`];
-    if (conn.port && conn.port !== 3389) {
+    if (conn.port && conn.port !== DEFAULT_RDP_PORT) {
       targets.push(`TERMSRV/${conn.host}:${conn.port}`);
     }
 
@@ -161,7 +161,7 @@ export class RdpService {
 
       if (effectiveMode === 'direct') {
         // MODO 1: Linha de comando direta mstsc.exe /v:<host> (Sem avisos de segurança de arquivo desconhecido)
-        const fullAddress = conn.port && conn.port !== 3389 ? `${conn.host}:${conn.port}` : conn.host;
+        const fullAddress = conn.port && conn.port !== DEFAULT_RDP_PORT ? `${conn.host}:${conn.port}` : conn.host;
         args.push(`/v:${fullAddress}`);
 
         if (conn.display?.screenMode === 'fullscreen') {

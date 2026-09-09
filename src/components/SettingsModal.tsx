@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Settings, Check, Shield, Terminal, FileText } from 'lucide-react';
-import { AppSettings, LaunchMode } from '../types/rdp';
+import { AppSettings, LaunchMode, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -284,7 +284,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-[11px] text-slate-400">
                   {disablePingStatus
                     ? 'Desabilitado porque o indicador de status está desativado'
-                    : 'Testa periodicamente a porta RDP 3389 de todas as conexões cadastradas'}
+                    : `Testa periodicamente a porta RDP (${DEFAULT_RDP_PORT}) de todas as conexões cadastradas`}
                 </span>
               </div>
             </label>

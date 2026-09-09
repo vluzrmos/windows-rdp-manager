@@ -10,7 +10,7 @@ import {
   Shield, 
   Clock 
 } from 'lucide-react';
-import { RdpConnection, PingResult } from '../types/rdp';
+import { RdpConnection, PingResult, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface ConnectionListViewProps {
   connections: RdpConnection[];
@@ -52,7 +52,7 @@ export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
         </thead>
         <tbody className="divide-y divide-slate-800/60">
           {connections.map((conn) => {
-            const key = `${conn.host}:${conn.port || 3389}`;
+            const key = `${conn.host}:${conn.port || DEFAULT_RDP_PORT}`;
             const ping = pingResults[key];
 
             return (
@@ -117,7 +117,7 @@ export const ConnectionListView: React.FC<ConnectionListViewProps> = ({
                 {/* Host & Port */}
                 <td className="py-2.5 px-4 font-mono text-slate-300">
                   {conn.host}
-                  {conn.port && conn.port !== 3389 && (
+                  {conn.port && conn.port !== DEFAULT_RDP_PORT && (
                     <span className="text-slate-500">:{conn.port}</span>
                   )}
                 </td>

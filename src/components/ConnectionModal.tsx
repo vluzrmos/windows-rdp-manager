@@ -11,7 +11,7 @@ import {
   Activity, 
   Star 
 } from 'lucide-react';
-import { RdpConnection, PingResult, ScreenMode } from '../types/rdp';
+import { RdpConnection, PingResult, ScreenMode, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface ConnectionModalProps {
   initialData?: RdpConnection | null;
@@ -40,7 +40,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [customGroup, setCustomGroup] = useState('');
   const [isNewGroup, setIsNewGroup] = useState(false);
   const [host, setHost] = useState('');
-  const [port, setPort] = useState<number>(3389);
+  const [port, setPort] = useState<number>(DEFAULT_RDP_PORT);
   const [username, setUsername] = useState('');
   const [domain, setDomain] = useState('');
   const [password, setPassword] = useState('');
@@ -94,7 +94,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         setCustomGroup('');
         setIsNewGroup(false);
         setHost(initialData.host || '');
-        setPort(initialData.port || 3389);
+        setPort(initialData.port || DEFAULT_RDP_PORT);
         setUsername(initialData.username || '');
         setDomain(initialData.domain || '');
         setNotes(initialData.notes || '');
@@ -129,7 +129,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         setCustomGroup('');
         setIsNewGroup(false);
         setHost('');
-        setPort(3389);
+        setPort(DEFAULT_RDP_PORT);
         setUsername('');
         setDomain('');
         setNotes('');
@@ -199,7 +199,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       name: name.trim(),
       group: finalGroup,
       host: host.trim(),
-      port: Number(port) || 3389,
+      port: Number(port) || DEFAULT_RDP_PORT,
       username: username.trim(),
       domain: domain.trim() || undefined,
       password: password !== '' ? password : undefined,
@@ -442,7 +442,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                       }`}
                     >
                       {pingResult.online
-                        ? `Porta ${Number(port) || 3389} Aberta (${pingResult.latencyMs}ms)`
+                        ? `Porta ${Number(port) || DEFAULT_RDP_PORT} Aberta (${pingResult.latencyMs}ms)`
                         : pingResult.error || 'Porta inacessível'}
                     </span>
                   )}

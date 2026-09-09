@@ -16,7 +16,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import { RdpConnection, PingResult } from '../types/rdp';
+import { RdpConnection, PingResult, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface ConnectionCardProps {
   connection: RdpConnection;
@@ -57,7 +57,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
 
   const handleCopyHost = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const address = connection.port && connection.port !== 3389 
+    const address = connection.port && connection.port !== DEFAULT_RDP_PORT 
       ? `${connection.host}:${connection.port}` 
       : connection.host;
     navigator.clipboard.writeText(address);
@@ -206,7 +206,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
           </h3>
           <p className="text-xs font-mono text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
             <span>{connection.host}</span>
-            {connection.port && connection.port !== 3389 && (
+            {connection.port && connection.port !== DEFAULT_RDP_PORT && (
               <span className="text-slate-500">:{connection.port}</span>
             )}
           </p>

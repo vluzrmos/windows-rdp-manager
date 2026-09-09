@@ -5,7 +5,7 @@ import { StorageService } from './services/storageService';
 import { RdpService } from './services/rdpService';
 import { PingService } from './services/pingService';
 import { TrayService } from './services/trayService';
-import { RdpConnection, AppSettings } from '../src/types/rdp';
+import { RdpConnection, AppSettings, DEFAULT_RDP_PORT } from '../src/types/rdp';
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -138,7 +138,7 @@ ipcMain.handle('rdp:revealPassword', async (_event, id: string) => {
 });
 
 ipcMain.handle('rdp:checkPing', async (_event, host: string, port?: number) => {
-  return PingService.checkPort(host, port || 3389);
+  return PingService.checkPort(host, port || DEFAULT_RDP_PORT);
 });
 
 ipcMain.handle('rdp:connectRdp', async (_event, id: string) => {

@@ -1,3 +1,5 @@
+export { DEFAULT_RDP_PORT } from '../constants/rdp';
+
 export type ScreenMode = 'fullscreen' | 'custom' | 'windowed';
 
 export interface RdpDisplayConfig {

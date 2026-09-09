@@ -11,7 +11,7 @@ import {
   XCircle,
   Hash
 } from 'lucide-react';
-import { RdpConnection, PingResult } from '../types/rdp';
+import { RdpConnection, PingResult, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface SidebarProps {
   connections: RdpConnection[];
@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   let offlineCount = 0;
   if (!disablePingStatus) {
     connections.forEach((c) => {
-      const key = `${c.host}:${c.port || 3389}`;
+      const key = `${c.host}:${c.port || DEFAULT_RDP_PORT}`;
       if (pingResults[key]?.online) onlineCount++;
       else if (pingResults[key]?.online === false) offlineCount++;
     });
