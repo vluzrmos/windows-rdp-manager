@@ -10,7 +10,7 @@
     "build": "npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run pack && node_modules\\7zip-bin\\win\\x64\\7za.exe a -tzip -r -y \"release\\Windows-RDP-Manager-v1.0.0-win-x64.zip\" \".\\release\\win-unpacked\\*\""
+    "dist": "npm run pack && node -e \"require('fs').rmSync('release/Windows-RDP-Manager-v1.0.0-win-x64.zip', { force: true })\" && node_modules\\7zip-bin\\win\\x64\\7za.exe a -tzip -r -y \"release\\Windows-RDP-Manager-v1.0.0-win-x64.zip\" \".\\release\\win-unpacked\\*\""
   },
   "build": {
     "appId": "br.com.vluzrmos.windowsrdpmanager",
