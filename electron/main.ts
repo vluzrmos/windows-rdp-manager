@@ -80,6 +80,17 @@ function createWindow() {
     }
   });
 
+  // Evento nativo de restauração da janela (garante foco e reativação do Chromium)
+  mainWindow.on('restore', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+      if (!mainWindow.webContents.isDestroyed()) {
+        mainWindow.webContents.focus();
+      }
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -224,13 +235,7 @@ if (!gotTheLock) {
   app.on('second-instance', () => {
     // Se o usuário tentar abrir uma nova instância, restaurar e focar na janela existente
     if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      if (!mainWindow.isVisible()) {
-        mainWindow.show();
-      }
-      mainWindow.focus();
+      TrayService.showMainWindow();
     } else if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }

@@ -19,8 +19,12 @@ export class TrayService {
     this.tray = new Tray(icon);
     this.tray.setToolTip('Windows RDP Manager');
 
-    // Clique com botão esquerdo: restaura ou exibe a janela principal
+    // Clique com botão esquerdo ou duplo clique: restaura ou exibe a janela principal
     this.tray.on('click', () => {
+      this.showMainWindow();
+    });
+
+    this.tray.on('double-click', () => {
       this.showMainWindow();
     });
 
@@ -49,13 +53,20 @@ export class TrayService {
 
   static showMainWindow() {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+
     if (this.mainWindow.isMinimized()) {
       this.mainWindow.restore();
     }
-    if (!this.mainWindow.isVisible()) {
-      this.mainWindow.show();
-    }
+
+    this.mainWindow.show();
+    this.mainWindow.setAlwaysOnTop(true);
+    app.focus({ steal: true });
     this.mainWindow.focus();
+    this.mainWindow.setAlwaysOnTop(false);
+
+    if (!this.mainWindow.webContents.isDestroyed()) {
+      this.mainWindow.webContents.focus();
+    }
   }
 
   static updateMenu() {
@@ -99,6 +110,16 @@ export class TrayService {
       .slice(0, 5);
 
     const template: Electron.MenuItemConstructorOptions[] = [];
+
+    // Abrir janela principal diretamente
+    template.push({
+      label: 'Abrir Windows RDP Manager',
+      click: () => {
+        this.showMainWindow();
+      },
+    });
+
+    template.push({ type: 'separator' });
 
     // Header / Label fraca "Recentes"
     template.push({
