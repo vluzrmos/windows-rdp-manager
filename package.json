@@ -10,13 +10,14 @@
     "build": "npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
     "pack": "npm run build && electron-builder --dir",
-    "dist:exe": "npm run build && electron-builder --win nsis --x64",
+    "dist:exe": "npm run build && electron-builder --win nsis --x64 --publish never",
     "dist:zip": "npm run pack && node scripts/pack-zip.js",
-    "dist": "npm run build && electron-builder --win nsis --x64 && node scripts/pack-zip.js"
+    "dist": "npm run build && electron-builder --win nsis --x64 --publish never && node scripts/pack-zip.js"
   },
   "build": {
     "appId": "br.com.vluzrmos.windowsrdpmanager",
     "productName": "Windows RDP Manager",
+    "publish": null,
     "directories": {
       "output": "release"
     },
