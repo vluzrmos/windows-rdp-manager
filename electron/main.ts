@@ -8,6 +8,7 @@ import { TrayService } from './services/trayService';
 import { RdpConnection, AppSettings, DEFAULT_RDP_PORT } from '../src/types/rdp';
 
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
 let isQuitting = false;
 
 function getWindowIconPath(): string {
@@ -24,8 +25,70 @@ function getWindowIconPath(): string {
   return candidates[0];
 }
 
+function createSplashWindow() {
+  const iconPath = getWindowIconPath();
+  splashWindow = new BrowserWindow({
+    width: 440,
+    height: 270,
+    frame: false,
+    resizable: false,
+    center: true,
+    show: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    icon: iconPath,
+    backgroundColor: '#0f172a',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  const splashCandidates = [
+    path.join(app.getAppPath(), 'dist', 'splash.html'),
+    path.join(app.getAppPath(), 'public', 'splash.html'),
+    path.join(__dirname, '../../public/splash.html'),
+    path.join(__dirname, '../public/splash.html'),
+  ];
+  let splashFile = splashCandidates[0];
+  for (const c of splashCandidates) {
+    if (fs.existsSync(c)) {
+      splashFile = c;
+      break;
+    }
+  }
+
+  splashWindow.loadFile(splashFile).catch((err) => {
+    console.error('Falha ao carregar splash screen:', err);
+  });
+
+  splashWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.show();
+    }
+  });
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+
+  // Fallback para fechar a splash após 5 segundos caso a janela principal demore
+  setTimeout(() => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.destroy();
+      splashWindow = null;
+    }
+  }, 5000);
+}
+
 function createWindow() {
   const iconPath = getWindowIconPath();
+
+  const startHidden = process.argv.includes('--hidden');
+
+  if (!startHidden) {
+    createSplashWindow();
+  }
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -55,11 +118,14 @@ function createWindow() {
     mainWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
   }
 
-  const startHidden = process.argv.includes('--hidden');
-
   mainWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.destroy();
+      splashWindow = null;
+    }
     if (!startHidden) {
       mainWindow?.show();
+      mainWindow?.focus();
     }
   });
 

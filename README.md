@@ -84,11 +84,42 @@ npm run build
 npm start
 ```
 
-### 4. Gerar Instalador Executável (.exe)
+### 4. Gerar Executáveis e Pacotes de Distribuição
+
+O projeto oferece scripts para gerar o executável autônomo inteligente (Smart Auto-Installer / Instant Launcher) e pacotes `.zip`:
+
 ```powershell
+# Gera tanto o executável (.exe) quanto o pacote compactado (.zip)
 npm run dist
+
+# Gera apenas o executável único (.exe)
+npm run dist:exe
+
+# Gera apenas o pacote compactado (.zip) com a aplicação descompactada
+npm run dist:zip
 ```
-O pacote executável compactado (`.zip`) e a pasta descompactada (`win-unpacked`) serão gerados no diretório `release/`.
+
+#### 🚀 Como funciona o Executável Único (`.exe`):
+- **1ª Execução:** Instalação silenciosa e rápida (~1.5s) em `%LOCALAPPDATA%\Programs\windows-rdp-manager` com exibição de tela de splash, sem solicitar permissões de administrador (UAC). Cria automaticamente atalhos no Menu Iniciar e na Área de Trabalho e abre a aplicação.
+- **2ª Execução em diante:** Ao clicar no `.exe` (ou nos atalhos), ele detecta que a versão já está instalada e abre o aplicativo **instantaneamente em < 0.2s**, sem re-extrair arquivos ou gerar arquivos temporários no `%TEMP%`.
+- **Atualização Automática:** Se o usuário baixar e executar uma versão mais nova do `.exe` (ex: v1.0.1 sobre a v1.0.0), ele atualiza os componentes silenciosamente e sobe a nova versão.
+- **Splash Screen Integrada:** Conta com tela de carregamento moderna e dark mode na inicialização do aplicativo, proporcionando feedback visual imediato desde o primeiro instante.
+
+Os artefatos gerados ficam disponíveis no diretório `release/`:
+- `release/Windows-RDP-Manager-v<versao>-win-x64.exe`: Executável único inteligente com splash screen e abertura instantânea.
+- `release/Windows-RDP-Manager-v<versao>-win-x64.zip`: Pacote compactado com a pasta descompactada da aplicação (`win-unpacked`).
+
+### 5. Releases Automáticos com GitHub Actions
+
+O repositório possui uma GitHub Action configurada em `.github/workflows/release.yml`. Para gerar um novo release oficial com os binários anexados automaticamente:
+
+1. Atualize a versão no `package.json` (ex: `1.0.0`)
+2. Crie e envie a tag com o prefixo `v`:
+   ```powershell
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. O workflow do GitHub Actions será executado automaticamente na máquina Windows (`windows-latest`), compilando o projeto e anexando tanto o `.exe` standalone quanto o `.zip` diretamente à página de **Releases** do repositório! Também é possível disparar manualmente via aba **Actions** no GitHub.
 
 ---
 

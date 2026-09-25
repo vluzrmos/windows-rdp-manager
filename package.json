@@ -10,7 +10,9 @@
     "build": "npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run pack && node -e \"require('fs').rmSync('release/Windows-RDP-Manager-v1.0.0-win-x64.zip', { force: true })\" && node_modules\\7zip-bin\\win\\x64\\7za.exe a -tzip -r -y \"release\\Windows-RDP-Manager-v1.0.0-win-x64.zip\" \".\\release\\win-unpacked\\*\""
+    "dist:exe": "npm run build && electron-builder --win nsis --x64",
+    "dist:zip": "npm run pack && node scripts/pack-zip.js",
+    "dist": "npm run build && electron-builder --win nsis --x64 && node scripts/pack-zip.js"
   },
   "build": {
     "appId": "br.com.vluzrmos.windowsrdpmanager",
@@ -25,8 +27,18 @@
       "package.json"
     ],
     "win": {
-      "target": "dir",
+      "target": "nsis",
       "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Windows RDP Manager",
+      "include": "build/installer.nsh",
+      "artifactName": "Windows-RDP-Manager-v${version}-win-x64.${ext}"
     }
   },
   "keywords": [
