@@ -2,6 +2,32 @@
 
 Aplicação desktop profissional, moderna e de alta segurança para gerenciar conexões e perfis de Área de Trabalho Remota (**RDP**) no Windows, com integração nativa ao **`mstsc.exe`**.
 
+![Dashboard Principal - Windows RDP Manager](docs/screenshots/01-dashboard-grid.png)
+
+---
+
+## 📸 Capturas de Tela
+
+### Visão Principal em Grade (Cards)
+Interface moderna com cartões informativos, indicação de latência e status online via TCP Ping, tags customizadas e organização por grupos.
+![Visão em Grade](docs/screenshots/01-dashboard-grid.png)
+
+### Visão Densa em Lista (Tabela)
+Ideal para administração de grande volume de servidores corporativos com visualização tabular rápida e ações com 1 clique.
+![Visão em Lista](docs/screenshots/02-dashboard-list.png)
+
+### Configuração de Perfil RDP e Segurança DPAPI
+Armazenamento seguro de credenciais em repouso no Windows Data Protection API (DPAPI) com opções de domínio, porta e teste imediato de conectividade.
+![Configuração de Perfil](docs/screenshots/03-connection-modal.png)
+
+### Resoluções, Multi-Monitor e Smart Sizing
+Controle granular de dimensões de tela, tela cheia com barra de conexão, múltiplos monitores (`/multimon`) e profundidade de cor.
+![Opções de Tela](docs/screenshots/04-connection-display.png)
+
+### Configurações Gerais e Modos de Conexão
+Definição de modo nativo (`mstsc /v` direto ou arquivo `.rdp`), comportamento na bandeja do sistema (*system tray*) e senha mestra.
+![Configurações Gerais](docs/screenshots/05-settings-modal.png)
+
 ---
 
 ## 🔒 Segurança e Armazenamento de Senhas
@@ -62,7 +88,7 @@ npm start
 ```powershell
 npm run dist
 ```
-O instalador será gerado na pasta `dist/`.
+O pacote executável compactado (`.zip`) e a pasta descompactada (`win-unpacked`) serão gerados no diretório `release/`.
 
 ---
 
