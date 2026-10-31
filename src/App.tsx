@@ -23,7 +23,7 @@ export const App: React.FC = () => {
     startWithWindows: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
-    defaultLaunchMode: 'direct',
+    defaultLaunchMode: 'embedded',
     masterPasswordEnabled: false,
   });
 

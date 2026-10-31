@@ -1,15 +1,67 @@
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { spawn, exec } from 'child_process';
-import util from 'util';
-import { RdpConnection, DEFAULT_RDP_PORT } from '../../src/types/rdp';
+import { spawn } from 'child_process';
+import { RdpConnection, LaunchMode, DEFAULT_RDP_PORT } from '../../src/types/rdp';
 
 import os from 'os';
 
-const execAsync = util.promisify(exec);
+type HostMode = 'connect' | 'cred-write' | 'cred-delete';
 
 export class RdpService {
+  // Contagem de sessões mstsc ativas por alvo TERMSRV/* (remove a credencial quando a última fecha)
+  private static credentialRefs = new Map<string, number>();
+
+  /**
+   * Caminho do RdpHost.exe (host do controle ActiveX do Remote Desktop).
+   * Empacotado: resources/RdpHost.exe. Desenvolvimento: dist-native/RdpHost.exe.
+   */
+  static getHostPath(): string {
+    if (app?.isPackaged) {
+      return path.join(process.resourcesPath, 'RdpHost.exe');
+    }
+    const base = app?.getAppPath ? app.getAppPath() : process.cwd();
+    return path.join(base, 'dist-native', 'RdpHost.exe');
+  }
+
+  /**
+   * Inicia o RdpHost.exe enviando o payload via stdin (nunca pela linha de comando).
+   */
+  private static spawnHost(mode: HostMode, payload: Record<string, unknown>, detached = false) {
+    const hostPath = this.getHostPath();
+    if (!fs.existsSync(hostPath)) {
+      throw new Error(`Componente RdpHost.exe não encontrado em ${hostPath}`);
+    }
+
+    const child = spawn(hostPath, [mode], {
+      detached,
+      stdio: ['pipe', 'pipe', 'ignore'],
+      windowsHide: false,
+    });
+    child.stdin.end(JSON.stringify(payload), 'utf8');
+    return child;
+  }
+
+  private static runHost(mode: HostMode, payload: Record<string, unknown>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const child = this.spawnHost(mode, payload);
+      child.stdout.resume();
+      child.on('error', reject);
+      child.on('exit', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`RdpHost ${mode} terminou com código ${code}`));
+      });
+    });
+  }
+
+  private static getCredentialTargets(conn: RdpConnection): string[] {
+    const targets = [`TERMSRV/${conn.host}`];
+    if (conn.port && conn.port !== DEFAULT_RDP_PORT) {
+      targets.push(`TERMSRV/${conn.host}:${conn.port}`);
+    }
+    return targets;
+  }
+
   private static getTempDir(): string {
     const base = app?.getPath ? app.getPath('temp') : (process.env.TEMP || os.tmpdir());
     return path.join(base, 'rdp-manager');
@@ -108,53 +160,147 @@ export class RdpService {
   }
 
   /**
-   * Salva as credenciais no Windows Credential Manager usando cmdkey
+   * Salva as credenciais no Windows Credential Manager via CredWriteW (RdpHost.exe cred-write).
+   * A senha trafega apenas pelo stdin do processo — não aparece na linha de comando nem em logs
+   * de auditoria — e é gravada com persistência de sessão de logon.
    */
-  private static async setWindowsCredentials(conn: RdpConnection, decryptedPassword?: string): Promise<void> {
+  private static async setWindowsCredentials(conn: RdpConnection, decryptedPassword?: string): Promise<string[]> {
     if (!conn.username || !decryptedPassword) {
-      return;
+      return [];
     }
 
     const fullUsername = conn.domain ? `${conn.domain}\\${conn.username}` : conn.username;
-    
-    // Alvos para o Credential Manager (com e sem porta)
-    const targets = [`TERMSRV/${conn.host}`];
-    if (conn.port && conn.port !== DEFAULT_RDP_PORT) {
-      targets.push(`TERMSRV/${conn.host}:${conn.port}`);
-    }
+    const targets = this.getCredentialTargets(conn);
+
+    await this.runHost('cred-write', { targets, username: fullUsername, password: decryptedPassword });
 
     for (const target of targets) {
-      try {
-        // Escapar aspas para evitar quebras no comando cmdkey
-        const safeUser = fullUsername.replace(/"/g, '""');
-        const safePass = decryptedPassword.replace(/"/g, '""');
-        
-        await execAsync(`cmdkey /generic:"${target}" /user:"${safeUser}" /pass:"${safePass}"`);
-      } catch (err) {
-        console.warn(`Aviso ao registrar credencial para ${target}:`, err);
+      this.credentialRefs.set(target, (this.credentialRefs.get(target) ?? 0) + 1);
+    }
+    return targets;
+  }
+
+  /**
+   * Remove as credenciais gravadas quando a última sessão mstsc que as usa é encerrada.
+   */
+  private static releaseWindowsCredentials(targets: string[]) {
+    const toDelete = targets.filter((target) => {
+      const remaining = (this.credentialRefs.get(target) ?? 1) - 1;
+      if (remaining <= 0) {
+        this.credentialRefs.delete(target);
+        return true;
       }
+      this.credentialRefs.set(target, remaining);
+      return false;
+    });
+
+    if (toDelete.length > 0) {
+      this.runHost('cred-delete', { targets: toDelete }).catch((err) => {
+        console.warn('Aviso ao remover credenciais temporárias:', err);
+      });
     }
   }
 
   /**
-   * Lança a sessão RDP abrindo o cliente nativo mstsc.exe do Windows.
-   * Suporta tanto modo direto por linha de comando (/v) quanto perfil de arquivo .rdp.
+   * Monta a configuração enviada ao RdpHost.exe (cliente embutido).
+   */
+  static buildEmbeddedConfig(conn: RdpConnection, decryptedPassword?: string): Record<string, unknown> {
+    const display = conn.display || { screenMode: 'fullscreen', smartSizing: true, useMultimon: false };
+    const res = conn.resources;
+    const exp = conn.experience;
+    const gw = conn.gateway;
+
+    return {
+      title: conn.name,
+      host: conn.host,
+      port: conn.port || DEFAULT_RDP_PORT,
+      username: conn.username || '',
+      domain: conn.domain || '',
+      password: decryptedPassword || '',
+      screenMode: display.screenMode,
+      width: display.width,
+      height: display.height,
+      smartSizing: display.smartSizing,
+      colorDepth: display.colorDepth || 32,
+      redirectClipboard: res?.redirectClipboard ?? true,
+      redirectPrinters: res?.redirectPrinters ?? false,
+      redirectDrives: res?.redirectDrives ?? false,
+      audioMode: res?.audioMode ?? 0,
+      audioCapture: res?.audioCapture ?? false,
+      connectionType: exp?.connectionType ?? 7,
+      enableWallpaper: exp?.enableWallpaper ?? true,
+      enableFontSmoothing: exp?.enableFontSmoothing ?? true,
+      enableDesktopComposition: exp?.enableDesktopComposition ?? true,
+      enableTheme: exp?.enableTheme ?? true,
+      adminConsole: exp?.adminConsole ?? false,
+      gatewayEnabled: !!(gw?.enabled && gw.hostname),
+      gatewayHostname: gw?.hostname || '',
+      gatewayUsername: gw?.username || '',
+      gatewayUsageMethod: gw?.usageMethod ?? 1,
+    };
+  }
+
+  /**
+   * Abre a sessão no cliente embutido (RdpHost.exe + controle ActiveX mstscax).
+   * A senha é entregue ao controle em memória via stdin, sem Credential Manager.
+   */
+  private static launchEmbedded(conn: RdpConnection, decryptedPassword?: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      let child: ReturnType<typeof RdpService.spawnHost>;
+      try {
+        child = this.spawnHost('connect', this.buildEmbeddedConfig(conn, decryptedPassword), true);
+      } catch (err: any) {
+        resolve({ success: false, error: err.message });
+        return;
+      }
+
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', (chunk: string) => {
+        for (const line of chunk.split(/\r?\n/)) {
+          if (line.trim()) console.log(`[RdpHost ${conn.host}] ${line.trim()}`);
+        }
+      });
+      child.once('error', (err) => resolve({ success: false, error: err.message }));
+      child.once('spawn', () => {
+        child.unref();
+        resolve({ success: true });
+      });
+    });
+  }
+
+  /**
+   * Lança a sessão RDP no cliente embutido (padrão) ou no mstsc.exe nativo do Windows,
+   * por linha de comando (/v) ou perfil de arquivo .rdp.
    */
   static async launchRdp(
     conn: RdpConnection,
     decryptedPassword?: string,
-    defaultLaunchMode: 'direct' | 'rdp_file' = 'direct'
+    defaultLaunchMode: LaunchMode = 'embedded'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Determina o modo efetivo (a configuração do perfil sobrepõe o padrão global)
-      const effectiveMode =
+      let effectiveMode =
         conn.launchMode && conn.launchMode !== 'default'
           ? conn.launchMode
           : defaultLaunchMode;
 
-      // 1. Injetar credencial no Windows Credential Manager se houver senha
+      // O cliente embutido não suporta múltiplos monitores; usa o mstsc nesse caso
+      if (effectiveMode === 'embedded' && conn.display?.useMultimon) {
+        effectiveMode = 'direct';
+      }
+
+      if (effectiveMode === 'embedded') {
+        return await this.launchEmbedded(conn, decryptedPassword);
+      }
+
+      // 1. Injetar credencial temporária no Windows Credential Manager se houver senha
+      let credentialTargets: string[] = [];
       if (decryptedPassword) {
-        await this.setWindowsCredentials(conn, decryptedPassword);
+        try {
+          credentialTargets = await this.setWindowsCredentials(conn, decryptedPassword);
+        } catch (err) {
+          console.warn('Aviso ao registrar credenciais:', err);
+        }
       }
 
       const args: string[] = [];
@@ -200,6 +346,9 @@ export class RdpService {
         cwd: process.env.USERPROFILE || 'C:\\Windows\\System32',
       });
 
+      if (credentialTargets.length > 0) {
+        child.once('exit', () => this.releaseWindowsCredentials(credentialTargets));
+      }
       child.unref();
 
       return { success: true };

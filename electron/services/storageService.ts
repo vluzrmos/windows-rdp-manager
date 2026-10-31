@@ -31,7 +31,7 @@ export class StorageService {
     startWithWindows: false,
     confirmBeforeDelete: true,
     defaultGroup: 'Geral',
-    defaultLaunchMode: 'direct',
+    defaultLaunchMode: 'embedded',
     masterPasswordEnabled: false,
   };
 
@@ -193,7 +193,12 @@ export class StorageService {
       if (!fs.existsSync(this.getSettingsFile())) {
         return this.defaultSettings;
       }
-      return { ...this.defaultSettings, ...JSON.parse(fs.readFileSync(this.getSettingsFile(), 'utf-8')) };
+      const saved: Partial<AppSettings> = JSON.parse(fs.readFileSync(this.getSettingsFile(), 'utf-8'));
+      // Migração: o cliente embutido passou a ser o modo padrão (versão 2)
+      if ((saved.launchModeVersion ?? 1) < 2) {
+        saved.defaultLaunchMode = 'embedded';
+      }
+      return { ...this.defaultSettings, ...saved, launchModeVersion: 2 };
     } catch {
       return this.defaultSettings;
     }

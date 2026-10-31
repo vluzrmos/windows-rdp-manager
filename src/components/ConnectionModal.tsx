@@ -11,7 +11,7 @@ import {
   Activity, 
   Star 
 } from 'lucide-react';
-import { RdpConnection, PingResult, ScreenMode, DEFAULT_RDP_PORT } from '../types/rdp';
+import { RdpConnection, PingResult, ScreenMode, LaunchMode, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface ConnectionModalProps {
   initialData?: RdpConnection | null;
@@ -73,7 +73,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [gatewayUsername, setGatewayUsername] = useState('');
 
   // Modo de Inicialização (override)
-  const [launchMode, setLaunchMode] = useState<'default' | 'direct' | 'rdp_file'>('default');
+  const [launchMode, setLaunchMode] = useState<'default' | LaunchMode>('default');
 
   // Ping test in modal
   const [pingTesting, setPingTesting] = useState(false);
@@ -829,11 +829,14 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="default">Usar Padrão Global (definido nas Configurações)</option>
+                  <option value="embedded">Cliente Embutido - Janela própria com controles e senha em memória</option>
                   <option value="direct">Linha de Comando Direta (mstsc.exe /v) - Sem aviso de fornecedor desconhecido</option>
                   <option value="rdp_file">Arquivo de Perfil (.rdp) - Recursos avançados completos</option>
                 </select>
                 <p className="text-[11px] text-slate-400">
-                  {launchMode === 'direct'
+                  {launchMode === 'embedded'
+                    ? 'Abre em uma janela do app com título e barra de controles, usando o motor do mstsc. Unidades são redirecionadas todas de uma vez; com múltiplos monitores, usa o mstsc.'
+                    : launchMode === 'direct'
                     ? 'Conecta diretamente via mstsc.exe /v com parâmetros de tela. Não exibe aviso de segurança de fornecedor desconhecido.'
                     : launchMode === 'rdp_file'
                     ? 'Gera um arquivo .rdp temporário no disco com opções completas de redirecionamento local.'

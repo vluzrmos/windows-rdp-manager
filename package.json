@@ -1,18 +1,20 @@
 {
   "name": "windows-rdp-manager",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Gerenciador profissional e seguro de perfis e conexões RDP para Windows com suporte a DPAPI e mstsc.exe nativo",
   "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "concurrently -k -r -p \"[{name}]\" -n \"VITE,TSC,ELECTRON\" -c \"blue,yellow,green\" \"vite\" \"tsc -p tsconfig.electron.json -w\" \"wait-on tcp:5173 && electron .\"",
+    "dev": "npm run build:native && concurrently -k -r -p \"[{name}]\" -n \"VITE,TSC,ELECTRON\" -c \"blue,yellow,green\" \"vite\" \"tsc -p tsconfig.electron.json -w\" \"wait-on tcp:5173 && electron .\"",
+    "build:native": "node scripts/build-rdphost.js",
     "build:vite": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "build": "npm run build:vite && npm run build:electron",
+    "build": "npm run build:native && npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
-    "pack": "npm run build && electron-builder --dir",
-    "dist:exe": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "version:bump": "node scripts/bump-version.js",
+    "pack": "npm run version:bump && npm run build && electron-builder --dir",
+    "dist:exe": "npm run version:bump && npm run build && electron-builder --win nsis --x64 --publish never",
     "dist:zip": "npm run pack && node scripts/pack-zip.js",
-    "dist": "npm run build && electron-builder --win nsis --x64 --publish never && node scripts/pack-zip.js"
+    "dist": "npm run version:bump && npm run build && electron-builder --win nsis --x64 --publish never && node scripts/pack-zip.js"
   },
   "build": {
     "appId": "br.com.vluzrmos.windowsrdpmanager",
@@ -26,6 +28,12 @@
       "dist-electron/**/*",
       "build/icon.ico",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-native/RdpHost.exe",
+        "to": "RdpHost.exe"
+      }
     ],
     "win": {
       "target": "nsis",

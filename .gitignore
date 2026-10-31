@@ -6,6 +6,7 @@ node_modules/
 # Builds e bundles
 dist/
 dist-electron/
+dist-native/
 release/
 out/
 

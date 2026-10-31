@@ -230,7 +230,7 @@ ipcMain.handle('rdp:connectRdp', async (_event, id: string) => {
   const mode =
     conn.launchMode && conn.launchMode !== 'default'
       ? conn.launchMode
-      : settings.defaultLaunchMode || 'direct';
+      : settings.defaultLaunchMode || 'embedded';
 
   const result = await RdpService.launchRdp(conn, decryptedPassword, mode);
 

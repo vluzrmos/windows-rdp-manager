@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, Check, Shield, Terminal, FileText } from 'lucide-react';
+import { X, Settings, Check, Shield, Terminal, FileText, Monitor } from 'lucide-react';
 import { AppSettings, LaunchMode, DEFAULT_RDP_PORT } from '../types/rdp';
 
 interface SettingsModalProps {
@@ -25,7 +25,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(settings.confirmBeforeDelete);
   const [defaultGroup, setDefaultGroup] = useState(settings.defaultGroup || 'Geral');
   const [defaultLaunchMode, setDefaultLaunchMode] = useState<LaunchMode>(
-    settings.defaultLaunchMode || 'direct'
+    settings.defaultLaunchMode || 'embedded'
   );
   const [saved, setSaved] = useState(false);
 
@@ -40,7 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setStartWithWindows(settings.startWithWindows || false);
       setConfirmDelete(settings.confirmBeforeDelete);
       setDefaultGroup(settings.defaultGroup || 'Geral');
-      setDefaultLaunchMode(settings.defaultLaunchMode || 'direct');
+      setDefaultLaunchMode(settings.defaultLaunchMode || 'embedded');
     }
   }, [isOpen, settings]);
 
@@ -97,6 +97,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </label>
             <div className="grid grid-cols-1 gap-2.5">
               <div
+                onClick={() => setDefaultLaunchMode('embedded')}
+                className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  defaultLaunchMode === 'embedded'
+                    ? 'bg-blue-600/10 border-blue-500'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${defaultLaunchMode === 'embedded' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                    <Monitor className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">
+                        Cliente Embutido (controle RDP nativo)
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
+                        Recomendado
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Abre a sessão em uma janela própria do app, com título personalizado e barra de controles, usando o mesmo motor do mstsc. A senha é entregue <strong>diretamente em memória</strong>, sem passar pelo Credential Manager. Conexões com múltiplos monitores usam o mstsc automaticamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
                 onClick={() => setDefaultLaunchMode('direct')}
                 className={`p-3 rounded-xl border cursor-pointer transition-all ${
                   defaultLaunchMode === 'direct'
@@ -109,16 +137,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Terminal className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white">
-                        Linha de Comando Direta (mstsc.exe /v)
-                      </span>
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
-                        Recomendado
-                      </span>
-                    </div>
+                    <span className="text-xs font-bold text-white block">
+                      Linha de Comando Direta (mstsc.exe /v)
+                    </span>
                     <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Abre a conexão passando os parâmetros diretamente ao executável nativo. <strong>Não exibe</strong> o aviso de segurança de &quot;Fornecedor desconhecido&quot; e autentica de imediato com usuário e senha do Credential Manager.
+                      Abre a conexão passando os parâmetros diretamente ao executável nativo. <strong>Não exibe</strong> o aviso de segurança de &quot;Fornecedor desconhecido&quot; e autentica com uma credencial temporária no Credential Manager, removida ao fechar a sessão.
                     </p>
                   </div>
                 </div>
