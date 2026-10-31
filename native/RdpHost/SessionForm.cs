@@ -33,6 +33,7 @@ namespace RdpManager.Host
         private readonly Timer resizeTimer;
 
         private bool loggedIn;
+        private bool sessionActive;
         private bool closeRequested;
         private bool inFullScreen;
         private bool fullScreenOnConnect;
@@ -301,6 +302,7 @@ namespace RdpManager.Host
         private void Connect()
         {
             loggedIn = false;
+            sessionActive = false;
             statusLabel.Text = "Conectando a " + host + "…";
             ShowLoadingPanel();
 
@@ -429,6 +431,47 @@ namespace RdpManager.Host
             }
         }
 
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_RESTORE_SESSION)
+            {
+                RestoreSession();
+                return;
+            }
+            base.WndProc(ref m);
+        }
+
+        /// <summary>
+        /// Pedido do app (RdpHost.exe focus) para trazer a sessão de volta: restaura a partir do
+        /// minimizado mantendo o estado anterior (tela cheia/maximizada) e ativa a janela.
+        /// </summary>
+        private void RestoreSession()
+        {
+            Ipc.Send("debug", "restore: pedido do app (minimizada=" + (WindowState == FormWindowState.Minimized) + ", tela cheia=" + inFullScreen + ")");
+            if (WindowState == FormWindowState.Minimized)
+            {
+                ShowWindow(Handle, SW_RESTORE);
+            }
+            Activate();
+            if (!statusPanel.Visible)
+            {
+                rdp.Focus();
+            }
+        }
+
+        private static void RunLater(int milliseconds, Action action)
+        {
+            Timer timer = new Timer();
+            timer.Interval = milliseconds;
+            timer.Tick += delegate
+            {
+                timer.Stop();
+                timer.Dispose();
+                action();
+            };
+            timer.Start();
+        }
+
         /// <summary>
         /// Ajusta a resolução remota ao tamanho da janela (servidores Windows 8.1/2012 R2+).
         /// Só se aplica quando a escala local (smart sizing) está desligada e a resolução não é fixa.
@@ -540,6 +583,7 @@ namespace RdpManager.Host
         internal void HandleConnected()
         {
             statusLabel.Text = "Autenticando em " + host + "…";
+            sessionActive = true;
             HideStatusPanel();
             fullScreenButton.Enabled = true;
             rdp.Focus();
@@ -548,7 +592,17 @@ namespace RdpManager.Host
             if (fullScreenOnConnect)
             {
                 fullScreenOnConnect = false;
-                EnterFullScreen();
+
+                // Entrar em tela cheia no exato momento do OnConnected colide com o primeiro quadro
+                // completo enviado pelo servidor, que se perde no redimensionamento e deixa as partes
+                // estáticas da tela pretas (reproduzido com xrdp). Aguarda a sessão assentar.
+                RunLater(1500, delegate
+                {
+                    if (sessionActive)
+                    {
+                        EnterFullScreen();
+                    }
+                });
             }
         }
 
@@ -563,6 +617,7 @@ namespace RdpManager.Host
         internal void HandleDisconnected(int reason)
         {
             loggedIn = false;
+            sessionActive = false;
             UpdateButtons(false);
             ApplyFullScreenLayout(false);
 
@@ -598,6 +653,7 @@ namespace RdpManager.Host
 
         internal void HandleMinimizeRequest()
         {
+            Ipc.Send("debug", "minimize solicitado pela barra (tela cheia=" + inFullScreen + ")");
             WindowState = FormWindowState.Minimized;
         }
 
@@ -608,9 +664,18 @@ namespace RdpManager.Host
         }
 
         private const int DWMWA_CLOAK = 13;
+        private const int SW_RESTORE = 9;
+
+        /// <summary>
+        /// Mensagem (WM_APP + 0x52) enviada pelo RdpHost.exe focus para restaurar esta sessão.
+        /// </summary>
+        public const int WM_RESTORE_SESSION = 0x8000 + 0x52;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         /// <summary>
         /// ToolStrip que aceita o clique mesmo quando o foco está na sessão remota
