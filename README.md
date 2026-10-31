@@ -121,6 +121,51 @@ O repositório possui uma GitHub Action configurada em `.github/workflows/releas
    ```
 3. O workflow do GitHub Actions será executado automaticamente na máquina Windows (`windows-latest`), compilando o projeto e anexando tanto o `.exe` standalone quanto o `.zip` diretamente à página de **Releases** do repositório! Também é possível disparar manualmente via aba **Actions** no GitHub.
 
+### 6. Servidor RDP de Teste (RDPTest)
+
+Para testar o cliente embutido contra uma conexão RDP real sem precisar de um Windows Server, o projeto inclui a pasta [`RDPTest/`](RDPTest/Dockerfile) com o Dockerfile de um servidor **xrdp** mínimo (Alpine + Openbox + xterm, imagem de **~337 MB**). A pasta é o contexto de build (nenhum outro arquivo do projeto é enviado, mesmo em versões antigas do Docker sem BuildKit) e a senha de teste é passada ao subir o contêiner (não fica gravada na imagem). Ele pode ser executado com o **`wslc`** (CLI de contêineres nativa do WSL) ou com o **Docker**, com os mesmos argumentos.
+
+**Com `wslc` (nativo do WSL, sem instalar nada além do WSL):**
+
+> ℹ️ O `wslc` está disponível a partir do **WSL 3**. Confira a versão instalada com `wsl --version` e, se necessário, atualize com `wsl --update`.
+
+```powershell
+# Constrói a imagem
+wslc build -t rdp-test:latest RDPTest
+
+# Sobe o servidor em 127.0.0.1:13389
+wslc run -d --name rdp-test -p 127.0.0.1:13389:3389 -e RDP_USER=tester -e RDP_PASSWORD=<senha-de-teste> rdp-test:latest
+
+# Parar / iniciar novamente / verificar
+wslc stop rdp-test
+wslc start rdp-test
+wslc list
+```
+
+**Com Docker:**
+
+```powershell
+# Constrói a imagem
+docker build -t rdp-test:latest RDPTest
+
+# Sobe o servidor em 127.0.0.1:13389
+docker run -d --name rdp-test -p 127.0.0.1:13389:3389 -e RDP_USER=tester -e RDP_PASSWORD=<senha-de-teste> rdp-test:latest
+
+# Parar / iniciar novamente / verificar
+docker stop rdp-test
+docker start rdp-test
+docker ps -a
+```
+
+No app, crie uma conexão com host `127.0.0.1`, porta `13389`, usuário `tester` e a senha definida acima.
+
+Observações:
+- O xrdp **não suporta NLA**: a conexão usa TLS com certificado autoassinado, então o aviso de certificado aparece ao conectar.
+- O xrdp **não dispara o evento de login concluído** (`OnLoginComplete`) do controle RDP; o estado da sessão é considerado ativo a partir de `OnConnected`.
+- Para capturas de tela da sessão, use captura via DXGI/Desktop Duplication: capturas GDI (`BitBlt`/`PrintWindow`) mostram a área do controle RDP em preto, pois ele desenha com aceleração de hardware.
+- Logs do servidor: `wslc exec rdp-test sh -c "tail -n 50 /var/log/xrdp.log /var/log/xrdp-sesman.log"` (no Docker, `docker exec` com os mesmos argumentos).
+- Remover tudo: `wslc remove -f rdp-test` e `wslc rmi rdp-test:latest` (no Docker, `docker rm -f rdp-test` e `docker rmi rdp-test:latest`).
+
 ---
 
 ## ⌨️ Atalhos de Teclado
