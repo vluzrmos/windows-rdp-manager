@@ -13,6 +13,7 @@ namespace RdpManager.Host
     ///   RdpHost.exe connect      -> abre a janela de sessão RDP (controle ActiveX mstscax)
     ///   RdpHost.exe cred-write   -> grava credencial TERMSRV/* no Credential Manager (CredWriteW)
     ///   RdpHost.exe cred-delete  -> remove credenciais TERMSRV/* (CredDeleteW)
+    ///   RdpHost.exe focus        -> restaura e traz para frente a janela de uma sessão já aberta
     /// </summary>
     public static class Program
     {
@@ -39,6 +40,9 @@ namespace RdpManager.Host
                     case "cred-delete":
                         CredentialStore.Delete(input);
                         return 0;
+
+                    case "focus":
+                        return WindowFocus.Bring(input) ? 0 : 1;
 
                     default:
                         Ipc.Send("fatal", "Modo inválido: " + mode);

@@ -141,12 +141,18 @@ namespace RdpManager.Host
             // Barra de título escura (Windows 10 20H1+ / Windows 11)
             int enabled = 1;
             try { DwmSetWindowAttribute(Handle, 20, ref enabled, sizeof(int)); } catch { }
+
+            // Mantém a janela invisível (sem ser "layered") enquanto o controle ActiveX carrega
+            // e a interface é pintada pela primeira vez, evitando o fundo branco inicial
+            SetCloaked(true);
+
+            // Permite ao Electron focar esta janela ao conectar novamente no mesmo perfil
+            Ipc.Send("window", Handle.ToInt64().ToString());
         }
 
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            Activate();
 
             try
             {
@@ -158,6 +164,19 @@ namespace RdpManager.Host
                 Ipc.Send("fatal", ex.Message);
                 ShowStatusPanel("Não foi possível iniciar a conexão:\n" + ex.Message);
             }
+            finally
+            {
+                // Pinta tudo antes de revelar a janela já com o fundo e a barra definitivos
+                Refresh();
+                SetCloaked(false);
+                Activate();
+            }
+        }
+
+        private void SetCloaked(bool cloaked)
+        {
+            int value = cloaked ? 1 : 0;
+            try { DwmSetWindowAttribute(Handle, DWMWA_CLOAK, ref value, sizeof(int)); } catch { }
         }
 
         private void Configure()
@@ -458,6 +477,7 @@ namespace RdpManager.Host
         private void ShowStatusPanel(string message)
         {
             statusPanelText.Text = message + "\n\nUse \"Reconectar\" na barra acima ou feche a janela.";
+            statusPanelText.Cursor = Cursors.Default;
             statusPanel.Visible = true;
             statusPanel.BringToFront();
         }
@@ -468,6 +488,7 @@ namespace RdpManager.Host
         private void ShowLoadingPanel()
         {
             statusPanelText.Text = "Conectando a " + host + "…";
+            statusPanelText.Cursor = Cursors.AppStarting;
             statusPanel.Visible = true;
             statusPanel.BringToFront();
         }
@@ -585,6 +606,8 @@ namespace RdpManager.Host
             Ipc.Send("fatal", "Erro fatal do controle RDP: " + code);
             ShowStatusPanel("Erro fatal do cliente RDP (código " + code + ").");
         }
+
+        private const int DWMWA_CLOAK = 13;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

@@ -1,16 +1,24 @@
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { RdpConnection, LaunchMode, DEFAULT_RDP_PORT } from '../../src/types/rdp';
 
 import os from 'os';
 
-type HostMode = 'connect' | 'cred-write' | 'cred-delete';
+type HostMode = 'connect' | 'cred-write' | 'cred-delete' | 'focus';
+
+interface EmbeddedSession {
+  child: ChildProcess;
+  hwnd?: string; // Handle da janela informado pelo RdpHost (evento "window")
+}
 
 export class RdpService {
   // Contagem de sessões mstsc ativas por alvo TERMSRV/* (remove a credencial quando a última fecha)
   private static credentialRefs = new Map<string, number>();
+
+  // Sessões do cliente embutido abertas, por id de conexão
+  private static embeddedSessions = new Map<string, EmbeddedSession>();
 
   /**
    * Caminho do RdpHost.exe (host do controle ActiveX do Remote Desktop).
@@ -244,7 +252,23 @@ export class RdpService {
    * Abre a sessão no cliente embutido (RdpHost.exe + controle ActiveX mstscax).
    * A senha é entregue ao controle em memória via stdin, sem Credential Manager.
    */
-  private static launchEmbedded(conn: RdpConnection, decryptedPassword?: string): Promise<{ success: boolean; error?: string }> {
+  private static async launchEmbedded(conn: RdpConnection, decryptedPassword?: string): Promise<{ success: boolean; error?: string }> {
+    // Sessão já aberta para esta conexão: apenas restaura/foca a janela existente
+    const existing = this.embeddedSessions.get(conn.id);
+    if (existing && existing.child.exitCode === null) {
+      if (!existing.hwnd) {
+        // Janela ainda sendo criada (cliques repetidos): não abre outra
+        return { success: true };
+      }
+      try {
+        await this.runHost('focus', { hwnd: existing.hwnd });
+        return { success: true };
+      } catch {
+        // Janela não existe mais; segue abrindo uma nova sessão
+        this.embeddedSessions.delete(conn.id);
+      }
+    }
+
     return new Promise((resolve) => {
       let child: ReturnType<typeof RdpService.spawnHost>;
       try {
@@ -254,13 +278,37 @@ export class RdpService {
         return;
       }
 
+      const session: EmbeddedSession = { child };
+      this.embeddedSessions.set(conn.id, session);
+
+      let pending = '';
       child.stdout.setEncoding('utf8');
       child.stdout.on('data', (chunk: string) => {
-        for (const line of chunk.split(/\r?\n/)) {
-          if (line.trim()) console.log(`[RdpHost ${conn.host}] ${line.trim()}`);
+        pending += chunk;
+        const lines = pending.split(/\r?\n/);
+        pending = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          console.log(`[RdpHost ${conn.host}] ${line.trim()}`);
+          try {
+            const msg = JSON.parse(line);
+            if (msg.event === 'window' && typeof msg.detail === 'string') {
+              session.hwnd = msg.detail;
+            }
+          } catch {
+            // Linha que não é JSON: apenas registrada no log
+          }
         }
       });
-      child.once('error', (err) => resolve({ success: false, error: err.message }));
+      child.once('exit', () => {
+        if (this.embeddedSessions.get(conn.id) === session) {
+          this.embeddedSessions.delete(conn.id);
+        }
+      });
+      child.once('error', (err) => {
+        this.embeddedSessions.delete(conn.id);
+        resolve({ success: false, error: err.message });
+      });
       child.once('spawn', () => {
         child.unref();
         resolve({ success: true });
