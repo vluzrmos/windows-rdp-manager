@@ -99,15 +99,27 @@ npm run dist:exe
 npm run dist:zip
 ```
 
+#### 🔢 Versão e número de build
+
+A versão do app **não** muda sozinha ao empacotar. Ela é alterada manualmente, quando você decidir lançar uma nova versão:
+
+```powershell
+npm run version:patch   # 1.1.3 -> 1.1.4
+npm run version:minor   # 1.1.3 -> 1.2.0
+npm run version:major   # 1.1.3 -> 2.0.0
+```
+
+Cada execução de `dist`, `dist:exe`, `dist:zip` ou `pack` gera um **número de build incremental** (contador local em `.build-number`; no GitHub Actions usa `GITHUB_RUN_NUMBER`). O build entra no nome dos artefatos, na versão do arquivo do executável (`x.y.z.build`) e na tela **Sobre**. O instalador compara versão **e** build: um `.exe` da mesma versão com build mais novo atualiza a instalação; um build igual ou mais antigo apenas abre o app já instalado.
+
 #### 🚀 Como funciona o Executável Único (`.exe`):
 - **1ª Execução:** Instalação silenciosa e rápida (~1.5s) em `%LOCALAPPDATA%\Programs\windows-rdp-manager` com exibição de tela de splash, sem solicitar permissões de administrador (UAC). Cria automaticamente atalhos no Menu Iniciar e na Área de Trabalho e abre a aplicação.
 - **2ª Execução em diante:** Ao clicar no `.exe` (ou nos atalhos), ele detecta que a versão já está instalada e abre o aplicativo **instantaneamente em < 0.2s**, sem re-extrair arquivos ou gerar arquivos temporários no `%TEMP%`.
-- **Atualização Automática:** Se o usuário baixar e executar uma versão mais nova do `.exe` (ex: v1.0.1 sobre a v1.0.0), ele atualiza os componentes silenciosamente e sobe a nova versão.
+- **Atualização Automática:** Se o usuário baixar e executar uma versão mais nova do `.exe` (ex: v1.0.1 sobre a v1.0.0, ou um build mais novo da mesma versão), ele atualiza os componentes silenciosamente e sobe a nova versão.
 - **Splash Screen Integrada:** Conta com tela de carregamento moderna e dark mode na inicialização do aplicativo, proporcionando feedback visual imediato desde o primeiro instante.
 
 Os artefatos gerados ficam disponíveis no diretório `release/`:
-- `release/Windows-RDP-Manager-v<versao>-win-x64.exe`: Executável único inteligente com splash screen e abertura instantânea.
-- `release/Windows-RDP-Manager-v<versao>-win-x64.zip`: Pacote compactado com a pasta descompactada da aplicação (`win-unpacked`).
+- `release/Windows-RDP-Manager-v<versao>-build<build>-win-x64.exe`: Executável único inteligente com splash screen e abertura instantânea.
+- `release/Windows-RDP-Manager-v<versao>-build<build>-win-x64.zip`: Pacote compactado com a pasta descompactada da aplicação (`win-unpacked`).
 
 ### 5. Releases Automáticos com GitHub Actions
 
@@ -174,3 +186,7 @@ Observações:
 - `Ctrl + N`: Abrir formulário de nova conexão
 - `F5`: Atualizar status de conectividade (ping em lote)
 - `Duplo Clique`: Conectar imediatamente ao servidor
+
+## Licença
+
+Distribuído sob a licença [MIT](LICENSE.md).

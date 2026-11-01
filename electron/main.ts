@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { StorageService } from './services/storageService';
@@ -6,6 +6,8 @@ import { RdpService } from './services/rdpService';
 import { PingService } from './services/pingService';
 import { TrayService } from './services/trayService';
 import { RdpConnection, AppSettings, DEFAULT_RDP_PORT } from '../src/types/rdp';
+
+const REPOSITORY_URL = 'https://github.com/vluzrmos/windows-rdp-manager';
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
@@ -104,7 +106,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
@@ -161,6 +163,22 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+// Bloqueia novas janelas e navegação para fora da página carregada (a UI é uma SPA local)
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    // Únicos links externos permitidos: os do repositório do projeto (tela "Sobre"), no navegador padrão
+    if (url.startsWith(`${REPOSITORY_URL}/`) || url === REPOSITORY_URL) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+  contents.on('will-navigate', (event, url) => {
+    if (new URL(url).origin !== new URL(contents.getURL()).origin) {
+      event.preventDefault();
+    }
+  });
+});
 
 // Window management IPC
 ipcMain.on('window:minimize', () => {

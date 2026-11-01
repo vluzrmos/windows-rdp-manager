@@ -8,6 +8,7 @@ import { ConnectionModal } from './components/ConnectionModal';
 import { PasswordRevealModal } from './components/PasswordRevealModal';
 import { ExportImportModal } from './components/ExportImportModal';
 import { SettingsModal } from './components/SettingsModal';
+import { AboutModal } from './components/AboutModal';
 import { RdpConnection, AppSettings, PingResult, DEFAULT_RDP_PORT } from './types/rdp';
 import { Plus, Server, AlertTriangle } from 'lucide-react';
 
@@ -46,6 +47,7 @@ export const App: React.FC = () => {
 
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const [connectionToDelete, setConnectionToDelete] = useState<string | null>(null);
 
@@ -309,6 +311,7 @@ export const App: React.FC = () => {
           disablePingStatus={settings.disablePingStatus}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenExportImport={() => setIsExportImportOpen(true)}
+          onOpenAbout={() => setIsAboutOpen(true)}
           onAddGroup={() => {
             setEditingConnection(null);
             setIsConnectionModalOpen(true);
@@ -452,6 +455,9 @@ export const App: React.FC = () => {
         settings={settings}
         onSaveSettings={handleSaveSettings}
       />
+
+      {/* About Modal */}
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
 
       {/* Confirm Delete Dialog */}
       {connectionToDelete && (

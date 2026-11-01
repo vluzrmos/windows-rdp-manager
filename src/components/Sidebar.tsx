@@ -9,7 +9,8 @@ import {
   Activity,
   CheckCircle2,
   XCircle,
-  Hash
+  Hash,
+  Info
 } from 'lucide-react';
 import { RdpConnection, PingResult, DEFAULT_RDP_PORT } from '../types/rdp';
 
@@ -20,6 +21,7 @@ interface SidebarProps {
   pingResults: Record<string, PingResult>;
   onOpenSettings: () => void;
   onOpenExportImport: () => void;
+  onOpenAbout: () => void;
   onAddGroup: () => void;
   disablePingStatus?: boolean;
 }
@@ -31,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pingResults,
   onOpenSettings,
   onOpenExportImport,
+  onOpenAbout,
   onAddGroup,
   disablePingStatus,
 }) => {
@@ -179,6 +182,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Settings className="w-4 h-4 text-slate-400" />
           <span>Configurações</span>
+        </button>
+        <button
+          onClick={onOpenAbout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors"
+        >
+          <Info className="w-4 h-4 text-slate-400" />
+          <span>Sobre</span>
         </button>
       </div>
     </aside>

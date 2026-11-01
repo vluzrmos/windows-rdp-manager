@@ -3,10 +3,11 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const sevenZip = require('7zip-bin');
 const pkg = require('../package.json');
+const info = require('../build-info.json');
 
 const releaseDir = path.resolve(__dirname, '..', 'release');
 const unpackedDir = path.join(releaseDir, 'win-unpacked');
-const zipFileName = `Windows-RDP-Manager-v${pkg.version}-win-x64.zip`;
+const zipFileName = `Windows-RDP-Manager-v${pkg.version}-build${info.buildNumber}-win-x64.zip`;
 const zipFilePath = path.join(releaseDir, zipFileName);
 
 if (!fs.existsSync(unpackedDir)) {

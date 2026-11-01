@@ -5,44 +5,33 @@ export class CryptoService {
   /**
    * Criptografa uma string usando a Windows DPAPI (via safeStorage do Electron).
    * O dado é protegido pela chave do usuário do Windows no hardware local.
+   * Sem DPAPI disponível, falha em vez de gravar a senha com uma proteção fraca.
    */
   static encrypt(plainText: string): string {
     if (!plainText) return '';
-    try {
-      if (safeStorage.isEncryptionAvailable()) {
-        const encryptedBuffer = safeStorage.encryptString(plainText);
-        return 'dpapi:' + encryptedBuffer.toString('base64');
-      }
-    } catch (err) {
-      console.warn('safeStorage não disponível ou falhou, usando fallback criptográfico:', err);
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error('Criptografia do Windows (DPAPI) indisponível: a senha não foi salva.');
     }
-
-    // Fallback caso safeStorage não esteja disponível
-    return this.fallbackEncrypt(plainText);
+    return 'dpapi:' + safeStorage.encryptString(plainText).toString('base64');
   }
 
   /**
    * Descriptografa uma string usando a Windows DPAPI (via safeStorage).
+   * Valores "fallback:" de versões anteriores ainda são lidos; qualquer outro formato é rejeitado.
    */
   static decrypt(cipherText: string): string {
     if (!cipherText) return '';
     try {
       if (cipherText.startsWith('dpapi:')) {
-        const base64Data = cipherText.substring(6);
-        const buffer = Buffer.from(base64Data, 'base64');
-        return safeStorage.decryptString(buffer);
+        return safeStorage.decryptString(Buffer.from(cipherText.substring(6), 'base64'));
+      }
+      if (cipherText.startsWith('fallback:')) {
+        return this.legacyFallbackDecrypt(cipherText);
       }
     } catch (err) {
-      console.error('Falha ao descriptografar com DPAPI:', err);
+      console.error('Falha ao descriptografar senha:', err);
     }
-
-    // Tentar fallback se não for prefixo dpapi
-    try {
-      return this.fallbackDecrypt(cipherText);
-    } catch (err) {
-      console.error('Falha no fallback de descriptografia:', err);
-      return '';
-    }
+    return '';
   }
 
   /**
@@ -88,29 +77,13 @@ export class CryptoService {
     return JSON.parse(decrypted) as T;
   }
 
-  // Fallback interno com AES-256-GCM para ambientes sem DPAPI
-  private static readonly fallbackKey = crypto.scryptSync(process.env.COMPUTERNAME || 'rdp-manager-local', 'rdp-salt-2025', 32);
-
-  private static fallbackEncrypt(text: string): string {
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', this.fallbackKey, iv);
-    let enc = cipher.update(text, 'utf8', 'hex');
-    enc += cipher.final('hex');
-    const tag = cipher.getAuthTag();
-    return `fallback:${iv.toString('hex')}:${tag.toString('hex')}:${enc}`;
-  }
-
-  private static fallbackDecrypt(cipherText: string): string {
-    if (!cipherText.startsWith('fallback:')) return cipherText;
+  // Leitura do antigo fallback (chave derivada do nome do computador); não é mais usado para gravar
+  private static legacyFallbackDecrypt(cipherText: string): string {
     const parts = cipherText.split(':');
     if (parts.length < 4) return '';
-    const iv = Buffer.from(parts[1], 'hex');
-    const tag = Buffer.from(parts[2], 'hex');
-    const enc = parts[3];
-    const decipher = crypto.createDecipheriv('aes-256-gcm', this.fallbackKey, iv);
-    decipher.setAuthTag(tag);
-    let dec = decipher.update(enc, 'hex', 'utf8');
-    dec += decipher.final('utf8');
-    return dec;
+    const key = crypto.scryptSync(process.env.COMPUTERNAME || 'rdp-manager-local', 'rdp-salt-2025', 32);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(parts[1], 'hex'));
+    decipher.setAuthTag(Buffer.from(parts[2], 'hex'));
+    return decipher.update(parts[3], 'hex', 'utf8') + decipher.final('utf8');
   }
 }

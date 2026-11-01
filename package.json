@@ -2,6 +2,13 @@
   "name": "windows-rdp-manager",
   "version": "1.1.3",
   "description": "Gerenciador profissional e seguro de perfis e conexões RDP para Windows com suporte a DPAPI e mstsc.exe nativo",
+  "author": "Vagner Luz do Carmo",
+  "license": "MIT",
+  "homepage": "https://github.com/vluzrmos/windows-rdp-manager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vluzrmos/windows-rdp-manager.git"
+  },
   "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev": "npm run build:native && concurrently -k -r -p \"[{name}]\" -n \"VITE,TSC,ELECTRON\" -c \"blue,yellow,green\" \"vite\" \"tsc -p tsconfig.electron.json -w\" \"wait-on tcp:5173 && electron .\"",
@@ -10,11 +17,14 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run build:native && npm run build:vite && npm run build:electron",
     "start": "cross-env NODE_ENV=production electron .",
-    "version:bump": "node scripts/bump-version.js",
-    "pack": "npm run version:bump && npm run build && electron-builder --dir",
-    "dist:exe": "npm run version:bump && npm run build && electron-builder --win nsis --x64 --publish never",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "build:number": "node scripts/build-number.js",
+    "pack": "npm run build:number && npm run build && node scripts/electron-builder.js --dir",
+    "dist:exe": "npm run build:number && npm run build && node scripts/electron-builder.js --win nsis --x64 --publish never",
     "dist:zip": "npm run pack && node scripts/pack-zip.js",
-    "dist": "npm run version:bump && npm run build && electron-builder --win nsis --x64 --publish never && node scripts/pack-zip.js"
+    "dist": "npm run build:number && npm run build && node scripts/electron-builder.js --win nsis --x64 --publish never && node scripts/pack-zip.js"
   },
   "build": {
     "appId": "br.com.vluzrmos.windowsrdpmanager",
@@ -47,7 +57,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Windows RDP Manager",
       "include": "build/installer.nsh",
-      "artifactName": "Windows-RDP-Manager-v${version}-win-x64.${ext}"
+      "artifactName": "Windows-RDP-Manager-v${version}-build${env.APP_BUILD_NUMBER}-win-x64.${ext}"
     }
   },
   "keywords": [
@@ -58,8 +68,6 @@
     "dpapi",
     "credential-manager"
   ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",

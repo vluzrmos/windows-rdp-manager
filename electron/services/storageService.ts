@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { RdpConnection, AppSettings, ExportData } from '../../src/types/rdp';
 import { CryptoService } from './cryptoService';
 
@@ -117,7 +118,18 @@ export class StorageService {
     if (!conn || !conn.encryptedPassword) {
       return '';
     }
-    return CryptoService.decrypt(conn.encryptedPassword);
+    const password = CryptoService.decrypt(conn.encryptedPassword);
+
+    // Migra senhas gravadas com o antigo fallback para DPAPI
+    if (password && conn.encryptedPassword.startsWith('fallback:')) {
+      try {
+        conn.encryptedPassword = CryptoService.encrypt(password);
+        fs.writeFileSync(this.getConnectionsFile(), JSON.stringify(connections, null, 2), 'utf-8');
+      } catch (err) {
+        console.warn('Não foi possível migrar a senha para DPAPI:', err);
+      }
+    }
+    return password;
   }
 
   /**
@@ -166,9 +178,15 @@ export class StorageService {
     let importedCount = 0;
 
     for (const item of data.connections) {
-      const encryptedPassword = item.password ? CryptoService.encrypt(item.password) : undefined;
+      // O backup pode vir de terceiros: exige host válido e um id seguro para nomes de arquivo
+      if (!item || typeof item.host !== 'string' || !item.host.trim() || /[\x00-\x1f\x7f]/.test(item.host)) {
+        continue;
+      }
+      const id = typeof item.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(item.id) ? item.id : crypto.randomUUID();
+      const encryptedPassword = typeof item.password === 'string' && item.password ? CryptoService.encrypt(item.password) : undefined;
       const cleanItem: RdpConnection = {
         ...item,
+        id,
         encryptedPassword,
         password: undefined,
         hasPassword: !!encryptedPassword,

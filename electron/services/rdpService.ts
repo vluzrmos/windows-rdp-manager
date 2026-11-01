@@ -164,7 +164,8 @@ export class RdpService {
     lines.push('prompt for credentials:i:0');
     lines.push('negotiate security layer:i:1');
 
-    return lines.join('\r\n') + '\r\n';
+    // Remove caracteres de controle (CR/LF etc.) para que nenhum campo injete diretivas extras
+    return lines.map((line) => line.replace(/[\x00-\x1f\x7f]/g, '')).join('\r\n') + '\r\n';
   }
 
   /**
@@ -352,6 +353,7 @@ export class RdpService {
       }
 
       const args: string[] = [];
+      let rdpFilePath: string | undefined;
 
       if (effectiveMode === 'direct') {
         // MODO 1: Linha de comando direta mstsc.exe /v:<host> (Sem avisos de segurança de arquivo desconhecido)
@@ -376,8 +378,8 @@ export class RdpService {
         // MODO 2: Arquivo de perfil .rdp (Suporte a redirecionamentos avançados específicos)
         this.ensureTempDir();
         const rdpContent = this.buildRdpContent(conn);
-        const safeFileName = `${conn.id}_${conn.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.rdp`;
-        const rdpFilePath = path.join(this.getTempDir(), safeFileName);
+        const safeFileName = `${String(conn.id).replace(/[^a-zA-Z0-9_-]/g, '_')}_${String(conn.name).replace(/[^a-zA-Z0-9_-]/g, '_')}.rdp`;
+        rdpFilePath = path.join(this.getTempDir(), safeFileName);
         fs.writeFileSync(rdpFilePath, rdpContent, 'utf-8');
 
         args.push(rdpFilePath);
@@ -394,9 +396,15 @@ export class RdpService {
         cwd: process.env.USERPROFILE || 'C:\\Windows\\System32',
       });
 
-      if (credentialTargets.length > 0) {
-        child.once('exit', () => this.releaseWindowsCredentials(credentialTargets));
-      }
+      child.once('exit', () => {
+        if (credentialTargets.length > 0) {
+          this.releaseWindowsCredentials(credentialTargets);
+        }
+        // Remove o perfil .rdp temporário quando o mstsc encerra
+        if (rdpFilePath) {
+          fs.rm(rdpFilePath, { force: true }, () => {});
+        }
+      });
       child.unref();
 
       return { success: true };
