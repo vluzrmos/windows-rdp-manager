@@ -5,9 +5,12 @@ import { StorageService } from './services/storageService';
 import { RdpService } from './services/rdpService';
 import { PingService } from './services/pingService';
 import { TrayService } from './services/trayService';
+import { JumpListService } from './services/jumpListService';
 import { RdpConnection, AppSettings, DEFAULT_RDP_PORT } from '../src/types/rdp';
 
 const REPOSITORY_URL = 'https://github.com/vluzrmos/windows-rdp-manager';
+// Mesmo appId do electron-builder: associa a janela/Jump List ao atalho fixado na barra de tarefas
+const APP_USER_MODEL_ID = 'br.com.vluzrmos.windowsrdpmanager';
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
@@ -207,6 +210,10 @@ ipcMain.on('window:close', () => {
   }
 });
 
+ipcMain.on('navigate:ready', () => {
+  TrayService.markRendererReady();
+});
+
 ipcMain.handle('window:isMaximized', () => {
   return mainWindow?.isMaximized() ?? false;
 });
@@ -316,7 +323,18 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
+    // Item da Jump List clicado com o app já aberto: conectar direto ou abrir o cadastro
+    const connectId = JumpListService.getConnectionIdFromArgv(argv);
+    if (connectId) {
+      TrayService.connectById(connectId);
+      return;
+    }
+    if (JumpListService.isNewConnectionArgv(argv)) {
+      TrayService.navigate('new-connection');
+      return;
+    }
+
     // Se o usuário tentar abrir uma nova instância, restaurar e focar na janela existente
     if (mainWindow && !mainWindow.isDestroyed()) {
       TrayService.showMainWindow();
@@ -324,6 +342,10 @@ if (!gotTheLock) {
       createWindow();
     }
   });
+
+  if (process.platform === 'win32') {
+    app.setAppUserModelId(APP_USER_MODEL_ID);
+  }
 
   // App Lifecycle
   app.whenReady().then(() => {
@@ -335,6 +357,14 @@ if (!gotTheLock) {
         TrayService.destroy();
         app.quit();
       });
+    }
+
+    // App aberto por um item da Jump List: conectar ou abrir o cadastro assim que iniciar
+    const connectId = JumpListService.getConnectionIdFromArgv(process.argv);
+    if (connectId) {
+      TrayService.connectById(connectId);
+    } else if (JumpListService.isNewConnectionArgv(process.argv)) {
+      TrayService.navigate('new-connection');
     }
 
     app.on('activate', () => {

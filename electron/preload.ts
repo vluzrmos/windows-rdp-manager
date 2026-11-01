@@ -18,7 +18,7 @@ export interface RdpApi {
   closeWindow: () => void;
   isMaximized: () => Promise<boolean>;
   // Eventos de navegação e atualização
-  onNavigate: (callback: (target: 'settings' | 'connections') => void) => () => void;
+  onNavigate: (callback: (target: 'settings' | 'connections' | 'new-connection') => void) => () => void;
   onRefreshData: (callback: () => void) => () => void;
 }
 
@@ -39,14 +39,19 @@ const api: RdpApi = {
   closeWindow: () => ipcRenderer.send('window:close'),
   isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
 
-  onNavigate: (callback: (target: 'settings' | 'connections') => void) => {
+  onNavigate: (callback: (target: 'settings' | 'connections' | 'new-connection') => void) => {
     const handleSettings = () => callback('settings');
     const handleConnections = () => callback('connections');
+    const handleNewConnection = () => callback('new-connection');
     ipcRenderer.on('navigate:settings', handleSettings);
     ipcRenderer.on('navigate:connections', handleConnections);
+    ipcRenderer.on('navigate:new-connection', handleNewConnection);
+    // Avisa o main que já pode entregar eventos pendentes (ex.: app aberto pela Jump List)
+    ipcRenderer.send('navigate:ready');
     return () => {
       ipcRenderer.removeListener('navigate:settings', handleSettings);
       ipcRenderer.removeListener('navigate:connections', handleConnections);
+      ipcRenderer.removeListener('navigate:new-connection', handleNewConnection);
     };
   },
 

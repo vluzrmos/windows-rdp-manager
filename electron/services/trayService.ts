@@ -3,16 +3,26 @@ import path from 'path';
 import fs from 'fs';
 import { StorageService } from './storageService';
 import { RdpService } from './rdpService';
+import { JumpListService } from './jumpListService';
 import { RdpConnection } from '../../src/types/rdp';
+
+export type NavigateTarget = 'settings' | 'connections' | 'new-connection';
 
 export class TrayService {
   private static tray: Tray | null = null;
   private static mainWindow: BrowserWindow | null = null;
   private static onQuitCallback: (() => void) | null = null;
+  // Eventos navigate:* enviados antes do React registrar os listeners se perderiam (ex.: app aberto pela Jump List)
+  private static rendererReady = false;
+  private static pendingNavigate: NavigateTarget | null = null;
 
   static init(mainWindow: BrowserWindow, onQuit: () => void) {
     this.mainWindow = mainWindow;
     this.onQuitCallback = onQuit;
+    this.rendererReady = false;
+    mainWindow.webContents.on('did-start-loading', () => {
+      this.rendererReady = false;
+    });
 
     const iconPath = this.getTrayIconPath();
     const icon = nativeImage.createFromPath(iconPath);
@@ -69,10 +79,42 @@ export class TrayService {
     }
   }
 
+  /** Exibe a janela principal e envia um evento de navegação para a interface. */
+  static navigate(target: NavigateTarget) {
+    this.showMainWindow();
+    if (this.rendererReady && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(`navigate:${target}`);
+    } else {
+      this.pendingNavigate = target;
+    }
+  }
+
+  /** Chamado quando a interface registra os listeners de navegação; entrega o evento pendente, se houver. */
+  static markRendererReady() {
+    this.rendererReady = true;
+    if (this.pendingNavigate) {
+      const target = this.pendingNavigate;
+      this.pendingNavigate = null;
+      this.navigate(target);
+    }
+  }
+
   static updateMenu() {
+    // A Jump List da barra de tarefas mostra os mesmos dados (favoritos/recentes), então acompanha o menu da bandeja
+    JumpListService.update();
     if (!this.tray) return;
     const menu = this.buildContextMenu();
     this.tray.setContextMenu(menu);
+  }
+
+  /** Conecta pelo id (usado pelos itens da Jump List); abre a janela principal se a conexão não existir mais. */
+  static async connectById(id: string) {
+    const conn = StorageService.getConnections().find((c) => c.id === id);
+    if (!conn) {
+      this.showMainWindow();
+      return;
+    }
+    await this.connect(conn);
   }
 
   private static async connect(conn: RdpConnection) {
@@ -152,8 +194,7 @@ export class TrayService {
     allConnectionsSubmenu.push({
       label: 'Abrir Gerenciador de Conexões',
       click: () => {
-        this.showMainWindow();
-        this.mainWindow?.webContents.send('navigate:connections');
+        this.navigate('connections');
       },
     });
 
@@ -188,8 +229,7 @@ export class TrayService {
     template.push({
       label: 'Configurações',
       click: () => {
-        this.showMainWindow();
-        this.mainWindow?.webContents.send('navigate:settings');
+        this.navigate('settings');
       },
     });
 

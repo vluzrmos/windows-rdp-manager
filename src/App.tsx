@@ -97,6 +97,10 @@ export const App: React.FC = () => {
         setIsConnectionModalOpen(false);
         setSelectedGroup('ALL');
         setSelectedTag(null);
+      } else if (target === 'new-connection') {
+        setIsSettingsOpen(false);
+        setEditingConnection(null);
+        setIsConnectionModalOpen(true);
       }
     });
 
