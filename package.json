@@ -1,6 +1,6 @@
 {
   "name": "windows-rdp-manager",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Gerenciador profissional e seguro de perfis e conexões RDP para Windows com suporte a DPAPI e mstsc.exe nativo",
   "main": "dist-electron/electron/main.js",
   "scripts": {
