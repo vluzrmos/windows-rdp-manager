@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -10,11 +12,20 @@ namespace RdpManager.Host
     /// </summary>
     public class SessionForm : Form
     {
-        private static readonly Color Background = Color.FromArgb(15, 23, 42);   // slate-900
-        private static readonly Color Surface = Color.FromArgb(30, 41, 59);      // slate-800
-        private static readonly Color Hover = Color.FromArgb(51, 65, 85);        // slate-700
-        private static readonly Color TextColor = Color.FromArgb(226, 232, 240); // slate-200
-        private static readonly Color MutedText = Color.FromArgb(148, 163, 184); // slate-400
+        // Mesma paleta do painel (cores Tailwind usadas em src/components)
+        private static readonly Color NavBar = Color.FromArgb(15, 23, 42);        // navbar/barra de título: #0f172a
+        private static readonly Color Background = Color.FromArgb(14, 20, 36);    // área principal: #0e1424
+        private static readonly Color Border = Color.FromArgb(30, 41, 59);        // slate-800
+        private static readonly Color Hover = Color.FromArgb(30, 41, 59);         // slate-800
+        private static readonly Color TextColor = Color.FromArgb(226, 232, 240);  // slate-200
+        private static readonly Color ButtonText = Color.FromArgb(203, 213, 225); // slate-300
+        private static readonly Color MutedText = Color.FromArgb(148, 163, 184);  // slate-400
+        private static readonly Color DisabledText = Color.FromArgb(71, 85, 105); // slate-600
+        private static readonly Color Accent = Color.FromArgb(96, 165, 250);      // blue-400
+        private static readonly Color Danger = Color.FromArgb(220, 38, 38);       // red-600
+
+        // Fonte do painel (Inter), com Segoe UI quando não estiver instalada
+        private static readonly string FontName = IsFontInstalled("Inter") ? "Inter" : "Segoe UI";
 
         private readonly Config config;
         private readonly string host;
@@ -52,7 +63,7 @@ namespace RdpManager.Host
             Text = name == host ? host + " — Windows RDP Manager" : name + " (" + host + ") — Windows RDP Manager";
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
-            Font = new Font("Segoe UI", 9f);
+            Font = new Font(FontName, 9f);
             AutoScaleDimensions = new SizeF(96f, 96f);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Background;
@@ -66,14 +77,15 @@ namespace RdpManager.Host
             toolbar = new ClickThroughToolStrip();
             toolbar.GripStyle = ToolStripGripStyle.Hidden;
             toolbar.Renderer = new DarkRenderer();
-            toolbar.BackColor = Surface;
+            toolbar.BackColor = NavBar;
             toolbar.ForeColor = TextColor;
-            toolbar.Padding = new Padding(6, 3, 6, 3);
+            toolbar.Padding = new Padding(8, 5, 8, 6);
 
             statusLabel = new ToolStripLabel("Conectando a " + host + "…");
             statusLabel.ForeColor = MutedText;
 
             disconnectButton = MakeButton("Desconectar", "Encerra a conexão RDP");
+            disconnectButton.Tag = Danger; // hover vermelho, como o botão fechar do painel
             disconnectButton.Click += delegate { Disconnect(); };
             reconnectButton = MakeButton("Reconectar", "Reconecta a sessão");
             reconnectButton.Click += delegate { Reconnect(); };
@@ -98,13 +110,13 @@ namespace RdpManager.Host
             // Painel exibido durante a conexão e quando a sessão está desconectada
             statusPanel = new Panel();
             statusPanel.Dock = DockStyle.Fill;
-            statusPanel.BackColor = Surface;
+            statusPanel.BackColor = Background;
 
             statusPanelText = new Label();
             statusPanelText.Dock = DockStyle.Fill;
             statusPanelText.TextAlign = ContentAlignment.MiddleCenter;
             statusPanelText.ForeColor = TextColor;
-            statusPanelText.Font = new Font("Segoe UI", 11f);
+            statusPanelText.Font = new Font(FontName, 11f);
             statusPanelText.Text = "Conectando a " + host + "…";
             statusPanel.Controls.Add(statusPanelText);
 
@@ -131,8 +143,9 @@ namespace RdpManager.Host
             button.Alignment = ToolStripItemAlignment.Right;
             button.DisplayStyle = ToolStripItemDisplayStyle.Text;
             button.ToolTipText = tooltip;
-            button.ForeColor = TextColor;
-            button.Margin = new Padding(2, 1, 2, 1);
+            button.ForeColor = ButtonText;
+            button.Padding = new Padding(8, 3, 8, 3);
+            button.Margin = new Padding(3, 0, 3, 0);
             return button;
         }
 
@@ -142,6 +155,12 @@ namespace RdpManager.Host
             // Barra de título escura (Windows 10 20H1+ / Windows 11)
             int enabled = 1;
             try { DwmSetWindowAttribute(Handle, 20, ref enabled, sizeof(int)); } catch { }
+
+            // Windows 11: barra de título com as cores da navbar do painel (ignorado em versões anteriores)
+            int caption = ColorRef(NavBar), border = ColorRef(Border), captionText = ColorRef(TextColor);
+            try { DwmSetWindowAttribute(Handle, 35, ref caption, sizeof(int)); } catch { }     // DWMWA_CAPTION_COLOR
+            try { DwmSetWindowAttribute(Handle, 34, ref border, sizeof(int)); } catch { }      // DWMWA_BORDER_COLOR
+            try { DwmSetWindowAttribute(Handle, 36, ref captionText, sizeof(int)); } catch { } // DWMWA_TEXT_COLOR
 
             // Mantém a janela invisível (sem ser "layered") enquanto o controle ActiveX carrega
             // e a interface é pintada pela primeira vez, evitando o fundo branco inicial
@@ -671,6 +690,23 @@ namespace RdpManager.Host
         /// </summary>
         public const int WM_RESTORE_SESSION = 0x8000 + 0x52;
 
+        private static bool IsFontInstalled(string name)
+        {
+            using (InstalledFontCollection fonts = new InstalledFontCollection())
+            {
+                foreach (FontFamily family in fonts.Families)
+                {
+                    if (string.Equals(family.Name, name, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+            return false;
+        }
+
+        private static int ColorRef(Color color)
+        {
+            return color.R | (color.G << 8) | (color.B << 16);
+        }
+
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
@@ -701,11 +737,17 @@ namespace RdpManager.Host
         {
             protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
             {
+                // Linha inferior, como o border-b border-slate-800 da navbar do painel
+                using (Pen pen = new Pen(Border))
+                {
+                    int y = e.ToolStrip.Height - 1;
+                    e.Graphics.DrawLine(pen, 0, y, e.ToolStrip.Width, y);
+                }
             }
 
             protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
             {
-                using (SolidBrush brush = new SolidBrush(Surface))
+                using (SolidBrush brush = new SolidBrush(NavBar))
                 {
                     e.Graphics.FillRectangle(brush, e.AffectedBounds);
                 }
@@ -714,19 +756,53 @@ namespace RdpManager.Host
             protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
             {
                 ToolStripButton button = e.Item as ToolStripButton;
-                bool highlight = e.Item.Selected || e.Item.Pressed || (button != null && button.Checked);
-                if (!highlight || !e.Item.Enabled) return;
+                bool hot = e.Item.Selected || e.Item.Pressed;
+                bool isChecked = button != null && button.Checked;
+                if ((!hot && !isChecked) || !e.Item.Enabled) return;
 
-                using (SolidBrush brush = new SolidBrush(Hover))
+                // Fundo arredondado (rounded-lg); o item com cor própria em Tag usa essa cor no hover
+                Color fill = hot && e.Item.Tag is Color ? (Color)e.Item.Tag : Hover;
+                Rectangle bounds = new Rectangle(0, 0, e.Item.Width - 1, e.Item.Height - 1);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = RoundedRect(bounds, 6))
+                using (SolidBrush brush = new SolidBrush(fill))
                 {
-                    e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+                    e.Graphics.FillPath(brush, path);
                 }
             }
 
             protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
             {
-                e.TextColor = e.Item.Enabled ? e.Item.ForeColor : Hover;
+                ToolStripButton button = e.Item as ToolStripButton;
+                if (!e.Item.Enabled)
+                {
+                    e.TextColor = DisabledText;
+                }
+                else if (e.Item.Selected || e.Item.Pressed)
+                {
+                    e.TextColor = Color.White;
+                }
+                else if (button != null && button.Checked)
+                {
+                    e.TextColor = Accent; // ativo: text-blue-400, como o seletor de visualização do painel
+                }
+                else
+                {
+                    e.TextColor = e.Item.ForeColor;
+                }
                 base.OnRenderItemText(e);
+            }
+
+            private static GraphicsPath RoundedRect(Rectangle r, int radius)
+            {
+                int d = radius * 2;
+                GraphicsPath path = new GraphicsPath();
+                path.AddArc(r.X, r.Y, d, d, 180, 90);
+                path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+                path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+                path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+                path.CloseFigure();
+                return path;
             }
         }
     }

@@ -1,4 +1,4 @@
-Add-Type -AssemblyName System.Drawing
+﻿Add-Type -AssemblyName System.Drawing
 
 $sourcePath = "public\icon-v2.png"
 $destIco = "build\icon.ico"
